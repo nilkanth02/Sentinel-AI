@@ -259,3 +259,4 @@ if __name__ == "__main__":
         print(f"Risk Score: {result['risk_score']}")
         print(f"Flags: {result['flags']}")
         print("-" * 50)
+        
