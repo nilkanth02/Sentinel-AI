@@ -276,35 +276,35 @@ def create_custom_aggregator(prompt_weight: float,
 # Example usage and testing
 # ------------------------------------------------------------------
 
-if __name__ == "__main__":
-    # Test cases
-    test_cases = [
-        # Normal case - low risk
-        {
-            "prompt": {"similarity_score": 0.9, "is_anomalous": False},
-            "output": {"risk_score": 0.1, "flags": []}
-        },
-        # Anomalous prompt but safe output
-        {
-            "prompt": {"similarity_score": 0.3, "is_anomalous": True},
-            "output": {"risk_score": 0.0, "flags": []}
-        },
-        # Normal prompt but risky output
-        {
-            "prompt": {"similarity_score": 0.8, "is_anomalous": False},
-            "output": {"risk_score": 0.7, "flags": ["violence"]}
-        },
-        # Both risky
-        {
-            "prompt": {"similarity_score": 0.2, "is_anomalous": True},
-            "output": {"risk_score": 0.8, "flags": ["hate_speech", "violence"]}
-        }
-    ]
+# if __name__ == "__main__":
+#     # Test cases
+#     test_cases = [
+#         # Normal case - low risk
+#         {
+#             "prompt": {"similarity_score": 0.9, "is_anomalous": False},
+#             "output": {"risk_score": 0.1, "flags": []}
+#         },
+#         # Anomalous prompt but safe output
+#         {
+#             "prompt": {"similarity_score": 0.3, "is_anomalous": True},
+#             "output": {"risk_score": 0.0, "flags": []}
+#         },
+#         # Normal prompt but risky output
+#         {
+#             "prompt": {"similarity_score": 0.8, "is_anomalous": False},
+#             "output": {"risk_score": 0.7, "flags": ["violence"]}
+#         },
+#         # Both risky
+#         {
+#             "prompt": {"similarity_score": 0.2, "is_anomalous": True},
+#             "output": {"risk_score": 0.8, "flags": ["hate_speech", "violence"]}
+#         }
+#     ]
     
-    for i, case in enumerate(test_cases, 1):
-        result = aggregate_risk_signals(case["prompt"], case["output"])
-        print(f"Test Case {i}:")
-        print(f"Final Score: {result['final_score']}")
-        print(f"Flags: {result['flags']}")
-        print(f"Component Scores: {result['component_scores']}")
-        print("-" * 50)
+#     for i, case in enumerate(test_cases, 1):
+#         result = aggregate_risk_signals(case["prompt"], case["output"])
+#         print(f"Test Case {i}:")
+#         print(f"Final Score: {result['final_score']}")
+#         print(f"Flags: {result['flags']}")
+#         print(f"Component Scores: {result['component_scores']}")
+#         print("-" * 50)

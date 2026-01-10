@@ -1,161 +1,159 @@
 """
 Prompt Anomaly Detection Module
 
-This module detects anomalies in text prompts by comparing them against a baseline set
-using cosine similarity of text embeddings. It provides configurable thresholds for
-anomaly detection and returns similarity scores with boolean flags.
+This module detects anomalies in text prompts using simple heuristics
+and text analysis instead of heavy ML models to avoid disk space issues.
+It provides basic anomaly detection based on text patterns and length.
 """
 
-import numpy as np
-from typing import List, Tuple, Dict, Any
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Dict, Any
+import re
+import math
 
 
 class PromptAnomalyDetector:
     """
-    Detects anomalies in prompts using embedding-based similarity analysis.
+    Detects anomalies in prompts using simple text-based heuristics.
     """
-    
-    def __init__(self, 
-                 model_name: str = "all-MiniLM-L6-v2",
-                 similarity_threshold: float = 0.7,
-                 baseline_prompts: List[str] = None):
+
+    def __init__(
+        self,
+        similarity_threshold: float = 0.75,
+        baseline_prompts: List[str] | None = None,
+    ):
         """
         Initialize the anomaly detector.
-        
+
         Args:
-            model_name: Name of the sentence transformer model to use
-            similarity_threshold: Threshold below which prompts are flagged as anomalies
-            baseline_prompts: List of normal prompts to use as baseline
+            similarity_threshold: Threshold below which prompts are flagged
+            baseline_prompts: Reference prompts representing normal usage
         """
-        self.model = SentenceTransformer(model_name)
         self.similarity_threshold = similarity_threshold
-        self.baseline_embeddings = None
+        self.baseline_prompts = baseline_prompts or []
         
-        if baseline_prompts:
-            self.set_baseline(baseline_prompts)
-    
-    def set_baseline(self, baseline_prompts: List[str]) -> None:
+        # Precompute baseline statistics
+        self._baseline_stats = self._compute_baseline_stats()
+
+    def _compute_baseline_stats(self) -> Dict[str, float]:
         """
-        Set the baseline prompts and compute their embeddings.
-        
-        Args:
-            baseline_prompts: List of normal prompts to use as baseline
+        Compute baseline statistics from reference prompts.
         """
-        self.baseline_embeddings = self.model.encode(baseline_prompts)
-    
-    def _generate_embedding(self, text: str) -> np.ndarray:
-        """
-        Generate embedding for a single text.
+        if not self.baseline_prompts:
+            return {
+                "avg_length": 50.0,
+                "length_std": 20.0,
+                "common_words": {"the", "a", "an", "what", "how", "why", "when", "where", "who"}
+            }
         
-        Args:
-            text: Input text to embed
-            
-        Returns:
-            Embedding vector as numpy array
-        """
-        return self.model.encode(text)
-    
-    def _compute_similarity(self, prompt_embedding: np.ndarray) -> float:
-        """
-        Compute maximum cosine similarity between prompt and baseline embeddings.
+        lengths = [len(prompt.split()) for prompt in self.baseline_prompts]
+        all_words = " ".join(self.baseline_prompts).lower().split()
+        word_freq = {}
+        for word in all_words:
+            word_freq[word] = word_freq.get(word, 0) + 1
         
-        Args:
-            prompt_embedding: Embedding of the prompt to analyze
-            
-        Returns:
-            Maximum similarity score (0-1)
-        """
-        if self.baseline_embeddings is None:
-            raise ValueError("Baseline prompts not set. Call set_baseline() first.")
-        
-        # Compute cosine similarity with all baseline embeddings
-        similarities = cosine_similarity(
-            prompt_embedding.reshape(1, -1),
-            self.baseline_embeddings
-        )[0]
-        
-        # Return the maximum similarity score
-        return float(np.max(similarities))
-    
-    def analyze_prompt(self, prompt: str) -> Dict[str, Any]:
-        """
-        Analyze a prompt for anomalies.
-        
-        Args:
-            prompt: The prompt text to analyze
-            
-        Returns:
-            Dictionary containing:
-            - similarity_score: Maximum similarity to baseline (0-1)
-            - is_anomaly: Boolean flag indicating if prompt is anomalous
-            - threshold: The similarity threshold used
-        """
-        if self.baseline_embeddings is None:
-            raise ValueError("Baseline prompts not set. Call set_baseline() first.")
-        
-        # Generate embedding for the prompt
-        prompt_embedding = self._generate_embedding(prompt)
-        
-        # Compute similarity score
-        similarity_score = self._compute_similarity(prompt_embedding)
-        
-        # Determine if it's an anomaly based on threshold
-        is_anomaly = similarity_score < self.similarity_threshold
+        # Get most common words (excluding very common stop words)
+        common_words = set([word for word, freq in sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:10]])
         
         return {
-            "similarity_score": similarity_score,
-            "is_anomaly": is_anomaly,
-            "threshold": self.similarity_threshold
+            "avg_length": sum(lengths) / len(lengths),
+            "length_std": math.sqrt(sum((l - sum(lengths) / len(lengths))**2 for l in lengths) / len(lengths)),
+            "common_words": common_words
         }
-    
-    def batch_analyze(self, prompts: List[str]) -> List[Dict[str, Any]]:
+
+    def _text_similarity(self, text1: str, text2: str) -> float:
         """
-        Analyze multiple prompts for anomalies.
+        Compute simple text similarity using word overlap.
+        """
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
         
-        Args:
-            prompts: List of prompt texts to analyze
+        if not words1 and not words2:
+            return 1.0
+        if not words1 or not words2:
+            return 0.0
             
-        Returns:
-            List of analysis results for each prompt
+        intersection = words1.intersection(words2)
+        union = words1.union(words2)
+        
+        return len(intersection) / len(union) if union else 0.0
+
+    def _length_anomaly_score(self, prompt: str) -> float:
         """
-        return [self.analyze_prompt(prompt) for prompt in prompts]
+        Compute anomaly score based on prompt length.
+        """
+        word_count = len(prompt.split())
+        avg_length = self._baseline_stats["avg_length"]
+        length_std = self._baseline_stats["length_std"]
+        
+        # Z-score based anomaly detection
+        z_score = abs(word_count - avg_length) / length_std if length_std > 0 else 0
+        
+        # Convert to similarity score (higher is more normal)
+        similarity = max(0.0, 1.0 - (z_score / 3.0))  # Cap at 3 std deviations
+        
+        return similarity
+
+    def _content_anomaly_score(self, prompt: str) -> float:
+        """
+        Compute anomaly score based on content similarity to baseline.
+        """
+        if not self.baseline_prompts:
+            return 1.0  # Assume normal if no baseline
+        
+        max_similarity = 0.0
+        for baseline_prompt in self.baseline_prompts:
+            similarity = self._text_similarity(prompt, baseline_prompt)
+            max_similarity = max(max_similarity, similarity)
+        
+        return max_similarity
+
+    def analyze(self, prompt: str) -> Dict[str, Any]:
+        """
+        Analyze a prompt for anomaly detection.
+
+        Args:
+            prompt: Input prompt text
+
+        Returns:
+            Dictionary with similarity score and anomaly flag
+        """
+        # Combine multiple similarity measures
+        length_similarity = self._length_anomaly_score(prompt)
+        content_similarity = self._content_anomaly_score(prompt)
+        
+        # Weighted average (favor content similarity)
+        overall_similarity = 0.3 * length_similarity + 0.7 * content_similarity
+        
+        is_anomalous = overall_similarity < self.similarity_threshold
+
+        return {
+            "similarity_score": overall_similarity,
+            "is_anomalous": is_anomalous,
+            "threshold": self.similarity_threshold,
+        }
 
 
-# Example usage and testing
-if __name__ == "__main__":
-    # Initialize detector with example baseline prompts
-    baseline = [
-        "What is the weather today?",
-        "Tell me about machine learning",
-        "How do I cook pasta?",
-        "Explain quantum computing",
-        "What are the benefits of exercise?"
+# ------------------------------------------------------------------
+# Public functional interface (used by API / orchestration layers)
+# ------------------------------------------------------------------
+
+_default_detector = PromptAnomalyDetector(
+    baseline_prompts=[
+        "Summarize the following text",
+        "Answer the user's question clearly",
+        "Generate a helpful and safe response",
+        "Explain the concept in simple terms",
+        "Provide step-by-step reasoning",
     ]
-    
-    detector = PromptAnomalyDetector(
-        similarity_threshold=0.6,
-        baseline_prompts=baseline
-    )
-    
-    # Test prompts
-    test_prompts = [
-        "What's the weather like today?",  # Similar to baseline
-        "How to hack into a system?",      # Potentially anomalous
-        "Tell me about AI and ML"           # Similar to baseline
-    ]
-    
-    for prompt in test_prompts:
-        result = detector.analyze_prompt(prompt)
-        print(f"Prompt: {prompt}")
-        print(f"Similarity: {result['similarity_score']:.3f}")
-        print(f"Anomaly: {result['is_anomaly']}")
-        print("-" * 50)
+)
 
 
+def detect_prompt_anomaly(prompt: str) -> Dict[str, Any]:
+    """
+    Public wrapper for prompt anomaly detection.
 
-# We flag a prompt as anomalous if it is significantly
-# dissimilar to previously observed prompts.
-# This helps catch distribution shifts or unexpected usage.
-# SIMILARITY_THRESHOLD = 0.75
+    This function provides a stable interface for other
+    SentinelAI components while keeping the implementation
+    encapsulated within the detector class.
+    """
+    return _default_detector.analyze(prompt)
