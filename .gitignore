@@ -1,8 +1,11 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+/app/__pycache__/
 *.py[cod]
 *$py.class
-__pycahce__/
+/app/__pycache__/
+/app/monitors/__pycache__/
+/app/scoring/__pycache__/
+/app/api/__pycache__/
 
 # C extensions
 *.so
