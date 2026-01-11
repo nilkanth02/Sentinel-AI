@@ -2,6 +2,7 @@
 
 ## SentinelAI Agentic Risk Monitoring System
 
+```mermaid
 flowchart TD
     Client[Client Application]
     Sentinel[SentinelAI API]
@@ -45,3 +46,4 @@ flowchart TD
     style SignalReg fill:#99ff99,stroke:#333,stroke-width:2px
     style RiskReasoner fill:#ff9999,stroke:#333,stroke-width:2px
     style PolicyEngine fill:#99ccff,stroke:#333,stroke-width:2px
+```
