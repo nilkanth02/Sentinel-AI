@@ -1,23 +1,37 @@
 # SentinelAI
+ 
+SentinelAI is a lightweight AI risk monitoring system designed to detect
+prompt anomalies and risky model outputs before they reach end users.
 
-SentinelAI is a lightweight monitoring layer designed to detect failures,
-risks, and anomalous behavior in AI / LLM-powered systems before they reach end users.
+It acts as an observability and safety layer for AI / LLM-powered systems.
 
-## Why this exists
+## Why SentinelAI exists
 
-As AI systems are increasingly deployed in production, failures such as
-hallucinations, prompt misuse, and distribution shifts often go unnoticed.
-Most teams lack visibility into *when* and *why* models fail.
+AI systems often fail silently in production.
+Issues like hallucinations, prompt misuse, and unsafe outputs
+are usually detected only after users are impacted.
 
-SentinelAI focuses on early detection and observability rather than model accuracy alone.
+SentinelAI focuses on early detection by monitoring both
+inputs (prompts) and outputs (responses), providing
+a unified risk score and explainable flags for each interaction.
 
 ## What SentinelAI does (MVP)
-- Detects prompt distribution shifts
-- Flags risky or unstable model outputs
-- Assigns a simple risk score to each interaction
-- Logs and surfaces failure signals for inspection
+
+- Detects prompt distribution shifts using embedding similarity
+- Flags risky model outputs using rule-based heuristics
+- Aggregates multiple weak signals into a unified risk score
+- Exposes a simple `/api/analyze` endpoint for integration
+
 
 ## Non-goals
-- SentinelAI is not a replacement for model evaluation
+
+- SentinelAI does not generate model outputs
 - It does not guarantee correctness or alignment
-- The MVP favors interpretability over complex modeling
+- It favors explainability over complex black-box models
+
+
+## Example usage
+
+A customer support chatbot sends each model interaction to SentinelAI.
+If the risk score exceeds a threshold, the response can be logged,
+reviewed by a human, or blocked before reaching the user.
