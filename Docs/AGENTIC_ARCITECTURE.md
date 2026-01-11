@@ -1,4 +1,3 @@
-
 ```mermaid
 graph LR
     subgraph API
@@ -17,9 +16,7 @@ graph LR
         E[Action / Log]
     end
 
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-
-```
+    A -->|/api/analyze/| B
+    B -->|Detectors| C
+    C -->|Reasoner| D
+    D -->|Policy| E
