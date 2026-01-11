@@ -12,3 +12,4 @@ graph LR
     SignalRegistry --> RiskReasoner
     RiskReasoner --> PolicyEngine
     PolicyEngine --> ActionLog
+```
