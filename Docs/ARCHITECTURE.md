@@ -34,7 +34,7 @@ flowchart LR
     Aggregator --> DB
     Aggregator --> Client
 
-
+```
 
 ---
 
@@ -47,3 +47,5 @@ flowchart LR
 3. Output risk scoring flags unsafe or unstable responses
 4. Risk signals are aggregated into a unified score
 5. Results are returned and optionally logged for review
+
+```
