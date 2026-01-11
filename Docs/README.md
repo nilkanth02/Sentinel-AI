@@ -3,6 +3,11 @@
 SentinelAI is a lightweight AI risk monitoring system designed to detect
 prompt anomalies and risky model outputs before they reach end users.
 
+prompt → detectors → aggregator → log
+
+Agentic approach - event → signals → reasoning → actions
+
+
 It acts as an observability and safety layer for AI / LLM-powered systems.
 
 ## Why SentinelAI exists
