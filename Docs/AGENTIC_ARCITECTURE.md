@@ -1,22 +1,14 @@
 ```mermaid
 graph LR
-    subgraph API
-        A[/api/analyze/]
-    end
-    subgraph Signal Registry
-        B[Detectors]
-    end
-    subgraph Risk Reasoner (Agent)
-        C[Reasoner]
-    end
-    subgraph Policy Engine
-        D[Policy]
-    end
-    subgraph Action + Log
-        E[Action / Log]
-    end
+    Client[Client Application]
+    Sentinel[SentinelAI API]
+    SignalRegistry[Signal Registry]
+    RiskReasoner[Risk Reasoner (Agent)]
+    PolicyEngine[Policy Engine]
+    ActionLog[(Action + Log)]
 
-    A -->|/api/analyze/| B
-    B -->|Detectors| C
-    C -->|Reasoner| D
-    D -->|Policy| E
+    Client --> Sentinel
+    Sentinel --> SignalRegistry
+    SignalRegistry --> RiskReasoner
+    RiskReasoner --> PolicyEngine
+    PolicyEngine --> ActionLog
