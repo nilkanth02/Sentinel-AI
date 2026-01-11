@@ -10,6 +10,8 @@ from typing import List, Dict, Any
 import re
 import math
 
+from app.storage.baseline_crud import list_active_baselines
+
 
 class PromptAnomalyDetector:
     """
@@ -18,35 +20,52 @@ class PromptAnomalyDetector:
 
     def __init__(
         self,
-        similarity_threshold: float = 0.75,
+        similarity_threshold: float = 0.6,  # Lowered from 0.75 to reduce false positives
         baseline_prompts: List[str] | None = None,
+        db_session=None,
     ):
         """
         Initialize the anomaly detector.
 
         Args:
             similarity_threshold: Threshold below which prompts are flagged
-            baseline_prompts: Reference prompts representing normal usage
+            baseline_prompts: Reference prompts representing normal usage (fallback)
+            db_session: Database session for loading baselines
         """
         self.similarity_threshold = similarity_threshold
-        self.baseline_prompts = baseline_prompts or []
+        self.db_session = db_session
+        self._baseline_prompts = baseline_prompts or []
         
         # Precompute baseline statistics
         self._baseline_stats = self._compute_baseline_stats()
+
+    @property
+    def baseline_prompts(self) -> List[str]:
+        """Get baseline prompts from database or fallback to defaults."""
+        if self.db_session:
+            try:
+                db_baselines = list_active_baselines(self.db_session)
+                if db_baselines:
+                    return [baseline.text for baseline in db_baselines]
+            except Exception:
+                # Fall back to defaults if database fails
+                pass
+        return self._baseline_prompts
 
     def _compute_baseline_stats(self) -> Dict[str, float]:
         """
         Compute baseline statistics from reference prompts.
         """
-        if not self.baseline_prompts:
+        prompts = self.baseline_prompts
+        if not prompts:
             return {
                 "avg_length": 50.0,
                 "length_std": 20.0,
                 "common_words": {"the", "a", "an", "what", "how", "why", "when", "where", "who"}
             }
         
-        lengths = [len(prompt.split()) for prompt in self.baseline_prompts]
-        all_words = " ".join(self.baseline_prompts).lower().split()
+        lengths = [len(prompt.split()) for prompt in prompts]
+        all_words = " ".join(prompts).lower().split()
         word_freq = {}
         for word in all_words:
             word_freq[word] = word_freq.get(word, 0) + 1
@@ -62,7 +81,7 @@ class PromptAnomalyDetector:
 
     def _text_similarity(self, text1: str, text2: str) -> float:
         """
-        Compute simple text similarity using word overlap.
+        Compute cosine similarity using word overlap.
         """
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
@@ -97,15 +116,51 @@ class PromptAnomalyDetector:
         """
         Compute anomaly score based on content similarity to baseline.
         """
-        if not self.baseline_prompts:
-            return 1.0  # Assume normal if no baseline
+        prompts = self.baseline_prompts
+        if not prompts:
+            return 1.0  # Assume normal if no baselines
         
         max_similarity = 0.0
-        for baseline_prompt in self.baseline_prompts:
+        for baseline_prompt in prompts:
             similarity = self._text_similarity(prompt, baseline_prompt)
             max_similarity = max(max_similarity, similarity)
         
         return max_similarity
+
+    def _detect_jailbreak_patterns(self, prompt: str) -> tuple[bool, List[str]]:
+        """
+        Detect known jailbreak patterns in the prompt.
+        
+        Args:
+            prompt: Input prompt text
+            
+        Returns:
+            Tuple of (jailbreak_detected, list_of_reasons)
+        """
+        # Known jailbreak patterns (case-insensitive)
+        jailbreak_patterns = {
+            "ignore all previous instructions": "jailbreak_attempt",
+            "ignore previous instructions": "jailbreak_attempt", 
+            "bypass safety": "jailbreak_attempt",
+            "bypass all safety": "jailbreak_attempt",
+            "reveal system prompt": "jailbreak_attempt",
+            "show system prompt": "jailbreak_attempt",
+            "act as DAN": "jailbreak_attempt",
+            "do anything now": "jailbreak_attempt",
+            "jailbreak": "jailbreak_attempt",
+            "system message": "jailbreak_attempt",
+            "developer mode": "jailbreak_attempt",
+            "override instructions": "jailbreak_attempt"
+        }
+        
+        prompt_lower = prompt.lower()
+        detected_reasons = []
+        
+        for pattern, reason in jailbreak_patterns.items():
+            if pattern in prompt_lower:
+                detected_reasons.append(reason)
+        
+        return (len(detected_reasons) > 0, detected_reasons)
 
     def analyze(self, prompt: str) -> Dict[str, Any]:
         """
@@ -117,19 +172,61 @@ class PromptAnomalyDetector:
         Returns:
             Dictionary with similarity score and anomaly flag
         """
-        # Combine multiple similarity measures
-        length_similarity = self._length_anomaly_score(prompt)
-        content_similarity = self._content_anomaly_score(prompt)
+        # Check for jailbreak patterns first
+        jailbreak_detected, jailbreak_reasons = self._detect_jailbreak_patterns(prompt)
         
-        # Weighted average (favor content similarity)
-        overall_similarity = 0.3 * length_similarity + 0.7 * content_similarity
+        # Load active baselines from database
+        baselines = []
+        if self.db_session:
+            try:
+                db_baselines = list_active_baselines(self.db_session)
+                baselines = [baseline.text for baseline in db_baselines]
+                print(f"DEBUG: Loaded {len(baselines)} baselines from database")
+            except Exception as e:
+                print(f"DEBUG: Failed to load baselines: {e}")
         
-        is_anomalous = overall_similarity < self.similarity_threshold
+        # If no baselines exist, return safe defaults
+        if not baselines:
+            print("DEBUG: No baselines found, returning safe defaults")
+            similarity_score = 1.0
+            is_anomalous = jailbreak_detected
+        else:
+            # Compute cosine similarity with all baselines
+            max_similarity = 0.0
+            for baseline in baselines:
+                similarity = self._text_similarity(prompt, baseline)
+                max_similarity = max(max_similarity, similarity)
+            
+            print(f"DEBUG: Max similarity score: {max_similarity:.3f}")
+            
+            # Apply threshold logic
+            if max_similarity >= 0.75:
+                baseline_anomalous = False
+                similarity_score = max_similarity
+            else:
+                baseline_anomalous = True
+                similarity_score = max_similarity
+            
+            # Combine with jailbreak detection
+            is_anomalous = baseline_anomalous or jailbreak_detected
+            
+            # If jailbreak detected, cap similarity score
+            if jailbreak_detected:
+                similarity_score = min(similarity_score, 0.3)
+        
+        # Build flags list
+        flags = []
+        if is_anomalous:
+            flags.append("prompt_anomaly")
+        if jailbreak_detected:
+            flags.extend(jailbreak_reasons)
 
         return {
-            "similarity_score": overall_similarity,
+            "similarity_score": similarity_score,
+            "anomaly_score": 1.0 - similarity_score,  # Inverted for risk scoring
             "is_anomalous": is_anomalous,
-            "threshold": self.similarity_threshold,
+            "threshold": 0.75,
+            "flags": flags
         }
 
 
@@ -137,23 +234,64 @@ class PromptAnomalyDetector:
 # Public functional interface (used by API / orchestration layers)
 # ------------------------------------------------------------------
 
-_default_detector = PromptAnomalyDetector(
-    baseline_prompts=[
-        "Summarize the following text",
-        "Answer the user's question clearly",
-        "Generate a helpful and safe response",
-        "Explain the concept in simple terms",
-        "Provide step-by-step reasoning",
-    ]
-)
 
-
-def detect_prompt_anomaly(prompt: str) -> Dict[str, Any]:
+def detect_prompt_anomaly(prompt: str, db_session=None) -> Dict[str, Any]:
     """
     Public wrapper for prompt anomaly detection.
 
     This function provides a stable interface for other
     SentinelAI components while keeping the implementation
     encapsulated within the detector class.
+    
+    Args:
+        prompt: Input prompt text to analyze
+        db_session: Database session for loading baselines (optional)
+        
+    Returns:
+        Dictionary with similarity score and anomaly flag
     """
-    return _default_detector.analyze(prompt)
+    # Fallback baseline prompts for when no database is available
+    fallback_baselines = [
+        # Educational prompts
+        "Explain the concept of photosynthesis",
+        "What are the main causes of climate change?",
+        "How do you solve quadratic equations?",
+        "Describe the process of cellular respiration",
+        "What are the key principles of democracy?",
+        "Explain the theory of evolution",
+        "How does the internet work?",
+        "What are the benefits of renewable energy?",
+        "Describe the structure of DNA",
+        "Explain economic supply and demand",
+        
+        # General assistance prompts
+        "Summarize the following text",
+        "Answer the user's question clearly",
+        "Generate a helpful and safe response",
+        "Explain the concept in simple terms",
+        "Provide step-by-step reasoning",
+        "Help me understand this topic",
+        "Can you explain this in more detail?",
+        "What are the pros and cons of this approach?",
+        "How does this compare to other methods?",
+        "What are the practical applications?",
+        
+        # Creative and analytical prompts
+        "Write a short story about",
+        "Analyze the following argument",
+        "Compare and contrast these two concepts",
+        "What are the implications of this finding?",
+        "How can we improve this process?",
+        "What are the potential challenges?",
+        "Explain this to a beginner",
+        "What are the key takeaways?",
+        "How does this relate to other topics?",
+        "What evidence supports this claim?"
+    ]
+    
+    detector = PromptAnomalyDetector(
+        similarity_threshold=0.75,  # Use 0.75 threshold as specified
+        baseline_prompts=fallback_baselines,
+        db_session=db_session
+    )
+    return detector.analyze(prompt)

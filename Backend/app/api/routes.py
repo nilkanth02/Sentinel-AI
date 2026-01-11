@@ -18,6 +18,9 @@ from app.scoring.aggregator import aggregate_risk_signals
 from app.storage.crud import log_risk_event, get_recent_risk_logs
 from app.storage.db import SessionLocal
 from app.signals.registry import SignalRegistry
+from app.agent.reasoner import RiskReasoner
+from app.policy.engine import PolicyEngine
+from app.actions.executor import ActionExecutor
 
 # Create router instance
 router = APIRouter()
@@ -26,6 +29,11 @@ router = APIRouter()
 signal_registry = SignalRegistry()
 signal_registry.register("prompt_anomaly", detect_prompt_anomaly, "prompt")
 signal_registry.register("output_risk", score_output_risk, "output")
+
+# Create agentic pipeline components
+risk_reasoner = RiskReasoner()
+policy_engine = PolicyEngine()
+action_executor = ActionExecutor()
 
 
 def get_db():
@@ -55,19 +63,37 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
     """
     # Step 1: Run prompt signal detectors
     prompt_signals = signal_registry.run_detectors("prompt", prompt=request.prompt)
-    prompt_anomaly_result = prompt_signals.get("prompt_anomaly", {})
     
     # Step 2: Run output signal detectors
-    output_signals = signal_registry.run_detectors("output", response=request.response)
-    output_risk_result = output_signals.get("output_risk", {})
+    output_signals = signal_registry.run_detectors("output", text=request.response)
     
-    # Step 3: Aggregate signals into final risk assessment
+    # Debug print to show signal propagation
+    print(f"DEBUG: prompt_signals = {prompt_signals}")
+    print(f"DEBUG: output_signals = {output_signals}")
+    
+    # Step 3: Use aggregator to combine signals into unified assessment
     aggregated_result = aggregate_risk_signals(
-        prompt_signals=prompt_anomaly_result,
-        output_signals=output_risk_result
+        prompt_signals=prompt_signals,
+        output_signals=output_signals
     )
     
-    # Step 4: Log the analysis result to database (non-blocking)
+    # Debug print to show merged flags
+    print(f"DEBUG: merged flags = {aggregated_result['flags']}")
+    
+    # Step 4: Use risk reasoner to analyze aggregated results
+    risk_summary = risk_reasoner.analyze_aggregated_result(
+        final_risk_score=aggregated_result["final_score"],
+        flags=aggregated_result["flags"],
+        confidence=aggregated_result.get("confidence", 1.0)
+    )
+    
+    # Step 5: Use policy engine to make decision
+    policy_decision = policy_engine.evaluate(risk_summary)
+    
+    # Step 6: Use action executor to carry out decision
+    action_result = action_executor.execute(policy_decision)
+    
+    # Step 7: Log the analysis result to database (non-blocking)
     try:
         log_risk_event(
             db=db,
@@ -78,14 +104,17 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
             confidence=aggregated_result.get("confidence")
         )
     except Exception as e:
-        # Logging failure should not break the API response
+        # Logging failure should not break API response
         print(f"Failed to log risk event: {e}")
     
-    # Step 5: Return final analysis results
+    # Step 8: Return final analysis results with decision and action
     return AnalyzeResponse(
         final_risk_score=aggregated_result["final_score"],
         flags=aggregated_result["flags"],
-        confidence=aggregated_result.get("confidence")
+        confidence=aggregated_result.get("confidence"),
+        decision=policy_decision.action.value,
+        action_taken=action_result.action.value,
+        decision_reason=policy_decision.explanation
     )
 
 

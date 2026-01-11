@@ -25,7 +25,9 @@ class OutputRiskScorer:
             "violence": {
                 "patterns": [
                     r"\b(kill|murder|harm|hurt|injure|attack|assault|violence)\b",
+                    r"\b(physically harm|physical harm|cause harm)\b",
                     r"\b(weapon|gun|knife|bomb|explosive)\b",
+                    r"\b(exploit|exploits|exploiting|take advantage)\b",
                     r"\b(torture|abuse|brutal|savage)\b"
                 ],
                 "weight": 0.8
@@ -166,6 +168,11 @@ class OutputRiskScorer:
         # Calculate overall risk score (maximum of category scores)
         overall_score = max(category_scores.values()) if category_scores else 0.0
         
+        # Ensure high-risk keywords trigger high risk scores
+        high_risk_detected = any(category in ["violence", "hate_speech", "self_harm"] for category in triggered_flags)
+        if high_risk_detected:
+            overall_score = max(overall_score, 0.7)
+        
         # Apply additional heuristics for edge cases
         if overall_score > 0:
             # Boost score if multiple categories are triggered
@@ -175,6 +182,10 @@ class OutputRiskScorer:
             # Boost score for very long outputs with risks (potential for extensive harmful content)
             if len(text) > 1000 and overall_score > 0.5:
                 overall_score = min(1.0, overall_score * 1.1)
+        
+        # Add unsafe_output flag for any detected risks
+        if triggered_flags:
+            triggered_flags.append("unsafe_output")
         
         return {
             "risk_score": round(overall_score, 3),

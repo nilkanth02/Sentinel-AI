@@ -15,6 +15,7 @@ class RiskSummary:
     """Structured risk summary from reasoner analysis."""
     risk_level: RiskLevel
     confidence: float
+    combined_score: float
     key_factors: List[str]
     explanation: str
     recommended_actions: List[str]
@@ -71,7 +72,46 @@ class RiskReasoner:
         return RiskSummary(
             risk_level=risk_level,
             confidence=confidence,
+            combined_score=combined_score,
             key_factors=key_factors,
+            explanation=explanation,
+            recommended_actions=recommendations
+        )
+    
+    def analyze_aggregated_result(self, final_risk_score: float, flags: List[str], confidence: float) -> RiskSummary:
+        """Analyze pre-aggregated risk results.
+        
+        Args:
+            final_risk_score: Pre-computed risk score from aggregator
+            flags: List of risk flags from aggregator
+            confidence: Confidence score from aggregator
+            
+        Returns:
+            RiskSummary with analysis based on aggregated results
+        """
+        # Check for multiple high-risk signals
+        has_prompt_anomaly = "prompt_anomaly" in flags
+        has_unsafe_output = "unsafe_output" in flags
+        
+        # Escalate to high risk if both prompt anomaly and unsafe output are present
+        if has_prompt_anomaly and has_unsafe_output:
+            risk_level = RiskLevel.HIGH
+            explanation = "High risk: Both prompt anomaly and unsafe output detected. Immediate escalation recommended."
+            recommendations = ["escalate", "human_review", "block_if_possible"]
+        else:
+            # Determine risk level based on pre-computed score
+            risk_level = self._classify_risk_level(final_risk_score)
+            
+            # Generate explanation based on aggregated results
+            key_factors = flags if flags else []
+            explanation = self._generate_explanation(final_risk_score, key_factors)
+            recommendations = self._generate_recommendations(risk_level, key_factors)
+        
+        return RiskSummary(
+            risk_level=risk_level,
+            confidence=confidence,
+            combined_score=final_risk_score,
+            key_factors=flags if flags else [],
             explanation=explanation,
             recommended_actions=recommendations
         )

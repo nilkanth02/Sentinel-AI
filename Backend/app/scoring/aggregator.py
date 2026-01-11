@@ -117,12 +117,16 @@ class RiskAggregator:
         """
         flags = []
         
-        # Add prompt anomaly flag if present
-        if prompt_signals.get("is_anomalous", False):
-            flags.append("prompt_anomaly")
+        # Extract prompt anomaly result from nested structure
+        prompt_result = prompt_signals.get("prompt_anomaly", {})
+        if prompt_result.get("is_anomalous", False):
+            # Add flags from prompt anomaly detection
+            prompt_flags = prompt_result.get("flags", [])
+            flags.extend(prompt_flags)
         
         # Add output risk flags
-        output_flags = output_signals.get("flags", [])
+        output_result = output_signals.get("output_risk", {})
+        output_flags = output_result.get("flags", [])
         flags.extend(output_flags)
         
         # Remove duplicates while preserving order
@@ -140,6 +144,8 @@ class RiskAggregator:
         """
         Calculate confidence in the aggregated risk assessment.
         
+        Confidence is based on detector execution, not risk severity.
+        
         Args:
             prompt_signals: Prompt anomaly detection results
             output_signals: Output risk scoring results
@@ -147,21 +153,18 @@ class RiskAggregator:
         Returns:
             Confidence score between 0 and 1
         """
-        factors = []
+        present_sources = 0
         
-        # Check if we have valid data from each source
-        if prompt_signals and "similarity_score" in prompt_signals:
-            factors.append(1.0)
-        else:
-            factors.append(0.0)
+        # Check if prompt detector ran (non-empty dict)
+        if prompt_signals:
+            present_sources += 1
             
-        if output_signals and "risk_score" in output_signals:
-            factors.append(1.0)
-        else:
-            factors.append(0.0)
+        # Check if output detector ran (non-empty dict)
+        if output_signals:
+            present_sources += 1
         
-        # Average the availability factors
-        return sum(factors) / len(factors)
+        # Confidence = (#present signal sources) / 2
+        return present_sources / 2.0
     
     def aggregate_risk(self, risk_signals: RiskSignals) -> Dict[str, Any]:
         """
