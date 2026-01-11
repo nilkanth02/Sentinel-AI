@@ -36,10 +36,10 @@ flowchart LR
 
 ```
 
+
 ---
 
-
-```md
+ 
 ### Flow explanation
 
 1. The client application sends prompt and model response to SentinelAI
@@ -47,5 +47,5 @@ flowchart LR
 3. Output risk scoring flags unsafe or unstable responses
 4. Risk signals are aggregated into a unified score
 5. Results are returned and optionally logged for review
-
-```
+ 
+---
