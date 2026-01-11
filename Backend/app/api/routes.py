@@ -17,9 +17,15 @@ from app.scoring.output_risk import score_output_risk
 from app.scoring.aggregator import aggregate_risk_signals
 from app.storage.crud import log_risk_event, get_recent_risk_logs
 from app.storage.db import SessionLocal
+from app.signals.registry import SignalRegistry
 
 # Create router instance
 router = APIRouter()
+
+# Create and configure signal registry
+signal_registry = SignalRegistry()
+signal_registry.register("prompt_anomaly", detect_prompt_anomaly, "prompt")
+signal_registry.register("output_risk", score_output_risk, "output")
 
 
 def get_db():
@@ -47,11 +53,13 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
     Returns:
         Analysis results with final risk score and triggered flags
     """
-    # Step 1: Analyze prompt for anomalies
-    prompt_anomaly_result = detect_prompt_anomaly(request.prompt)
+    # Step 1: Run prompt signal detectors
+    prompt_signals = signal_registry.run_detectors("prompt", prompt=request.prompt)
+    prompt_anomaly_result = prompt_signals.get("prompt_anomaly", {})
     
-    # Step 2: Score output for potential risks
-    output_risk_result = score_output_risk(request.response)
+    # Step 2: Run output signal detectors
+    output_signals = signal_registry.run_detectors("output", response=request.response)
+    output_risk_result = output_signals.get("output_risk", {})
     
     # Step 3: Aggregate signals into final risk assessment
     aggregated_result = aggregate_risk_signals(
