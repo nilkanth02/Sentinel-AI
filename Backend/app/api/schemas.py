@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict
+from datetime import datetime
 
 
 class AnalyzeRequest(BaseModel):
@@ -11,3 +12,14 @@ class AnalyzeResponse(BaseModel):
     final_risk_score: float
     flags: List[str]
     confidence: Optional[float] = None
+
+
+class RiskLogResponse(BaseModel):
+    id: int
+    created_at: datetime
+    final_risk_score: float
+    flags: List[str]
+    confidence: Optional[float] = None
+    
+    class Config:
+        from_attributes = True
