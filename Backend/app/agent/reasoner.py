@@ -48,23 +48,25 @@ class RiskReasoner:
         Returns:
             RiskSummary with detailed analysis and recommendations
         """
+        # Extract jailbreak signal
+        jailbreak_signal = prompt_signals.get("jailbreak_rag", {})
+        jailbreak_detected = bool(jailbreak_signal)  # Non-empty dict means jailbreak detected
+        
         # Extract key metrics from signals
         prompt_score = self._extract_prompt_score(prompt_signals)
         output_score = self._extract_output_score(output_signals)
         
-        # Calculate weighted risk score
-        combined_score = (
-            prompt_score * self.signal_weights["prompt_anomaly"] +
-            output_score * self.signal_weights["output_risk"]
-        )
+        # Calculate weighted risk score with jailbreak consideration
+        combined_score = self._calculate_combined_score(prompt_score, output_score, jailbreak_detected)
         
-        # Determine risk level
+        # Determine risk level and decision
         risk_level = self._classify_risk_level(combined_score)
+        decision = self._determine_jailbreak_decision(jailbreak_detected, prompt_signals, output_signals)
         
         # Generate explanation and recommendations
-        key_factors = self._identify_key_factors(prompt_signals, output_signals)
-        explanation = self._generate_explanation(combined_score, key_factors)
-        recommendations = self._generate_recommendations(risk_level, key_factors)
+        key_factors = self._identify_key_factors(prompt_signals, output_signals, jailbreak_signal)
+        explanation = self._generate_jailbreak_explanation(jailbreak_detected, decision, key_factors, combined_score)
+        recommendations = self._generate_jailbreak_recommendations(decision, key_factors)
         
         # Calculate confidence based on signal completeness
         confidence = self._calculate_confidence(prompt_signals, output_signals)
@@ -205,15 +207,44 @@ class RiskReasoner:
         
         return recommendations
     
-    def _calculate_confidence(self, prompt_signals: Dict[str, Any], output_signals: Dict[str, Any]) -> float:
-        """Calculate confidence based on signal availability and quality."""
-        available_signals = 0
-        total_signals = 2  # prompt and output
+    def _generate_jailbreak_recommendations(self, decision: str, key_factors: List[str]) -> List[str]:
+        """Generate recommendations including jailbreak-specific actions."""
+        recommendations = []
         
-        if prompt_signals and prompt_signals.get("prompt_anomaly"):
-            available_signals += 1
+        if decision == "escalate":
+            recommendations.extend([
+                "Immediate escalation to human reviewer",
+                "Consider blocking this interaction",
+                "Log for security analysis and pattern tracking",
+                "Review user account for suspicious activity"
+            ])
+        elif decision == "warn":
+            recommendations.extend([
+                "Monitor user for repeated attempts",
+                "Log jailbreak attempt for analysis",
+                "Consider additional authentication",
+                "Review similar patterns in system"
+            ])
+        elif decision == "block":
+            recommendations.extend([
+                "Block this response immediately",
+                "Log for security analysis",
+                "Review user interaction history"
+            ])
+        else:  # allow
+            recommendations.extend([
+                "Continue normal monitoring",
+                "Log for trend analysis"
+            ])
         
-        if output_signals and output_signals.get("output_risk"):
-            available_signals += 1
+        # Add specific recommendations based on factors
+        if any("jailbreak" in factor.lower() for factor in key_factors):
+            recommendations.append("Update jailbreak pattern database")
         
-        return available_signals / total_signals
+        if any("prompt" in factor.lower() for factor in key_factors):
+            recommendations.append("Review prompt injection patterns")
+        
+        if any("output" in factor.lower() for factor in key_factors):
+            recommendations.append("Enhance output filtering")
+        
+        return recommendations

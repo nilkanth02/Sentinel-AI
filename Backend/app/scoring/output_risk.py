@@ -74,6 +74,17 @@ class OutputRiskScorer:
                     r"\b(gore|blood|disturbing|shocking)\b"
                 ],
                 "weight": 0.7
+            },
+            "harmful_instructions": {
+                "patterns": [
+                    r"\b(how to exploit|exploit vulnerabilities|vulnerabilities are exploited)\b",
+                    r"\b(step by step|step-by-step|detailed instructions)\b",
+                    r"\b(bypass security|bypass protection|circumvent security)\b",
+                    r"\b(how to hack|how to crack|how to break into)\b",
+                    r"\b(build a bomb|make a weapon|create harmful)\b",
+                    r"\b(illegal method|criminal technique|unlawful act)\b"
+                ],
+                "weight": 0.85
             }
         }
         
@@ -169,9 +180,9 @@ class OutputRiskScorer:
         overall_score = max(category_scores.values()) if category_scores else 0.0
         
         # Ensure high-risk keywords trigger high risk scores
-        high_risk_detected = any(category in ["violence", "hate_speech", "self_harm"] for category in triggered_flags)
+        high_risk_detected = any(category in ["violence", "hate_speech", "self_harm", "harmful_instructions"] for category in triggered_flags)
         if high_risk_detected:
-            overall_score = max(overall_score, 0.7)
+            overall_score = max(overall_score, 0.8)
         
         # Apply additional heuristics for edge cases
         if overall_score > 0:
@@ -211,7 +222,8 @@ class OutputRiskScorer:
             "illegal_activities": "Content promoting or describing illegal acts",
             "misinformation": "False or misleading information",
             "privacy_violation": "Unauthorized personal or sensitive data",
-            "inappropriate_content": "Content unsuitable for general audiences"
+            "inappropriate_content": "Content unsuitable for general audiences",
+            "harmful_instructions": "Content providing step-by-step instructions for harmful activities"
         }
         return descriptions.get(category, "Unknown risk category")
 

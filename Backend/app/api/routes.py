@@ -21,6 +21,7 @@ from app.signals.registry import SignalRegistry
 from app.agent.reasoner import RiskReasoner
 from app.policy.engine import PolicyEngine
 from app.actions.executor import ActionExecutor
+from app.monitors.jailbreak_rag import detect_jailbreak_rag
 
 # Create router instance
 router = APIRouter()
@@ -28,6 +29,7 @@ router = APIRouter()
 # Create and configure signal registry
 signal_registry = SignalRegistry()
 signal_registry.register("prompt_anomaly", detect_prompt_anomaly, "prompt")
+signal_registry.register("jailbreak_rag", detect_jailbreak_rag, "prompt")
 signal_registry.register("output_risk", score_output_risk, "output")
 
 # Create agentic pipeline components
