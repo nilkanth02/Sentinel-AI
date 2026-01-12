@@ -2,6 +2,14 @@ from typing import Dict, Any, List
 from dataclasses import dataclass
 from enum import Enum
 
+# Import centralized risk configuration
+from app.config.risk_config import (
+    ALLOW_MAX,
+    WARN_MIN, 
+    BLOCK_MIN,
+    ESCALATE_MIN
+)
+
 
 class RiskLevel(Enum):
     """Risk level classification."""
@@ -25,18 +33,22 @@ class RiskReasoner:
     """Agent for reasoning about AI risk signals and generating structured assessments."""
     
     def __init__(self):
-        # Risk thresholds for classification
+        """
+        Initialize risk reasoner with centralized configuration.
+        
+        Uses centralized risk thresholds for consistent severity classification
+        across all SentinelAI components.
+        """
+        # Risk thresholds for classification using centralized config
+        # These thresholds map scores to severity levels for interpretation
         self.risk_thresholds = {
-            "low": 0.3,
-            "medium": 0.7,
-            "high": 1.0
+            "low": ALLOW_MAX,        # 0.1 - allow range
+            "medium": BLOCK_MIN,     # 0.6 - warn/block boundary  
+            "high": ESCALATE_MIN     # 0.85 - block/escalate boundary
         }
         
-        # Weights for different signal types
-        self.signal_weights = {
-            "prompt_anomaly": 0.4,
-            "output_risk": 0.6
-        }
+        # Note: signal_weights are no longer used here
+        # Signal weighting is handled by the aggregator with centralized config
     
     def analyze_signals(self, prompt_signals: Dict[str, Any], output_signals: Dict[str, Any]) -> RiskSummary:
         """Analyze combined signals and generate risk assessment.
@@ -248,3 +260,114 @@ class RiskReasoner:
             recommendations.append("Enhance output filtering")
         
         return recommendations
+    
+    def _determine_jailbreak_decision(self, jailbreak_detected: bool, 
+                                   prompt_signals: Dict[str, Any], 
+                                   output_signals: Dict[str, Any]) -> str:
+        """Determine decision based on jailbreak detection and other signals.
+        
+        Args:
+            jailbreak_detected: Whether jailbreak was detected
+            prompt_signals: Prompt anomaly detection results
+            output_signals: Output risk scoring results
+            
+        Returns:
+            Decision string (allow/warn/block/escalate)
+        """
+        # Check for multiple high-risk signals (escalate case)
+        has_prompt_anomaly = self._has_prompt_anomaly(prompt_signals)
+        has_unsafe_output = self._has_unsafe_output(output_signals)
+        
+        # Escalate if multiple high-risk signals are present
+        if jailbreak_detected and has_unsafe_output:
+            return "escalate"
+        elif has_prompt_anomaly and has_unsafe_output:
+            return "escalate"
+        
+        # Warn for single risk signals
+        if jailbreak_detected or has_prompt_anomaly:
+            return "warn"
+        
+        # Block for unsafe output only
+        if has_unsafe_output:
+            return "block"
+        
+        # Allow for clean cases
+        return "allow"
+    
+    def _generate_decision_reason(self, decision: str, flags: List[str]) -> str:
+        """
+        Generate signal-aware, human-readable decision explanation.
+        
+        Args:
+            decision: The policy decision (allow/warn/block/escalate)
+            flags: List of risk flags from aggregator
+            
+        Returns:
+            Short, human-readable explanation under 20 words
+        """
+        # Extract signal presence from flags
+        has_prompt_anomaly = "prompt_anomaly" in flags
+        has_jailbreak_attempt = "jailbreak_attempt" in flags
+        has_unsafe_output = "unsafe_output" in flags
+        
+        # Generate explanation based on decision and signals
+        if decision == "allow":
+            return "No significant risk signals detected"
+        
+        elif decision == "warn":
+            # Mention the weakest triggering signal
+            if has_prompt_anomaly:
+                return "Unusual prompt pattern detected"
+            elif has_jailbreak_attempt:
+                return "Possible jailbreak attempt detected"
+            else:
+                return "Suspicious activity detected"
+        
+        elif decision == "block":
+            # Mention unsafe output explicitly
+            if has_unsafe_output:
+                return "Unsafe output detected"
+            else:
+                return "Harmful content detected"
+        
+        elif decision == "escalate":
+            # Mention multiple signals
+            signal_count = sum([has_prompt_anomaly, has_jailbreak_attempt, has_unsafe_output])
+            if signal_count >= 3:
+                return "Multiple high-risk signals detected"
+            elif has_unsafe_output and has_jailbreak_attempt:
+                return "Unsafe output combined with jailbreak intent"
+            elif has_unsafe_output and has_prompt_anomaly:
+                return "Unsafe output with anomalous prompt"
+            elif has_jailbreak_attempt and has_prompt_anomaly:
+                return "Jailbreak attempt with anomalous prompt"
+            else:
+                return "High-risk activity detected"
+        
+        else:
+            return "Risk assessment completed"
+    
+    def _has_prompt_anomaly(self, prompt_signals: Dict[str, Any]) -> bool:
+        """Check if prompt anomaly is detected."""
+        if not prompt_signals:
+            return False
+        
+        prompt_result = prompt_signals.get("prompt_anomaly", {})
+        return prompt_result.get("is_anomalous", False)
+    
+    def _has_unsafe_output(self, output_signals: Dict[str, Any]) -> bool:
+        """Check if unsafe output is detected."""
+        if not output_signals:
+            return False
+        
+        output_result = output_signals.get("output_risk", {})
+        return "unsafe_output" in output_result.get("flags", [])
+    
+    def _generate_jailbreak_explanation(self, jailbreak_detected: bool, decision: str, 
+                                       key_factors: List[str], combined_score: float) -> str:
+        """Generate explanation including jailbreak-specific context."""
+        if jailbreak_detected:
+            return f"Jailbreak attempt detected (score: {combined_score:.2f}). Decision: {decision}. Factors: {', '.join(key_factors)}"
+        else:
+            return f"Risk assessment (score: {combined_score:.2f}). Decision: {decision}. Factors: {', '.join(key_factors)}"

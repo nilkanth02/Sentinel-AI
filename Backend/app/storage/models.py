@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON
 from sqlalchemy.sql import func
 from .db import Base
 
@@ -11,5 +11,10 @@ class RiskLog(Base):
     prompt = Column(Text)
     response = Column(Text)
     final_risk_score = Column(Float)
-    flags = Column(Text)  # JSON string storing risk flags
+    flags = Column(Text)  # JSON string storing risk flags (legacy)
     confidence = Column(Float, nullable=True)
+    
+    # Audit logging columns for full traceability
+    decision = Column(String, nullable=False)  # allow/warn/block/escalate
+    decision_reason = Column(String, nullable=False)  # Human-readable explanation
+    signals = Column(Text, nullable=False)  # JSON string storing structured signal data for auditability

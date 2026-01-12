@@ -11,6 +11,14 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 import json
 
+# Import centralized risk configuration
+from app.config.risk_config import (
+    ALLOW_MAX,
+    WARN_MIN, 
+    BLOCK_MIN,
+    ESCALATE_MIN
+)
+
 from app.api.schemas import AnalyzeRequest, AnalyzeResponse, RiskLogResponse
 from app.monitors.prompt_anomaly import detect_prompt_anomaly
 from app.scoring.output_risk import score_output_risk
@@ -73,10 +81,30 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
     print(f"DEBUG: prompt_signals = {prompt_signals}")
     print(f"DEBUG: output_signals = {output_signals}")
     
-    # Step 3: Use aggregator to combine signals into unified assessment
+    # Step 3: Normalize detector outputs into stable signal envelope
+    # Create normalized structure before calling aggregate_risk_signals
+    prompt_anomaly_result = prompt_signals.get("prompt_anomaly", {})
+    jailbreak_result = prompt_signals.get("jailbreak_rag", {})
+    output_risk_result = output_signals.get("output_risk", {})
+    
+    normalized_prompt = {
+        "present": prompt_anomaly_result.get("is_anomalous") is True
+    }
+    
+    normalized_jailbreak = {
+        "present": jailbreak_result.get("jailbreak_detected") is True
+    }
+    
+    normalized_output = {
+        "present": "unsafe_output" in output_risk_result.get("flags", []),
+        "flags": output_risk_result.get("flags", [])
+    }
+    
+    # Step 4: Use aggregator with normalized signal envelope
     aggregated_result = aggregate_risk_signals(
-        prompt_signals=prompt_signals,
-        output_signals=output_signals
+        prompt_signals=normalized_prompt,
+        jailbreak_signals=normalized_jailbreak,
+        output_signals=normalized_output
     )
     
     # Debug print to show merged flags
@@ -95,23 +123,44 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
     # Step 6: Use action executor to carry out decision
     action_result = action_executor.execute(policy_decision)
     
-    # Step 7: Log the analysis result to database (non-blocking)
+    # Step 7: Align final_risk_score with decision if needed
+    # This ensures score-decision consistency for edge cases where signals produce 0/None
+    # Final score alignment happens here because this is the orchestration layer that
+    # has access to both the aggregated score and the final policy decision
+    aligned_final_score = aggregated_result["final_score"]
+    if aligned_final_score <= 0:
+        # Apply decision-based alignment using centralized thresholds
+        # These scores represent the midpoint of each decision range for consistency
+        decision_scores = {
+            "allow": ALLOW_MAX,                                    # 0.1 - max allow score
+            "warn": (WARN_MIN + BLOCK_MIN) / 2,                   # 0.45 - midpoint of warn range
+            "block": (BLOCK_MIN + ESCALATE_MIN) / 2,              # 0.725 - midpoint of block range  
+            "escalate": ESCALATE_MIN                               # 0.85 - min escalate score
+        }
+        aligned_final_score = decision_scores.get(policy_decision.action.value.lower(), ALLOW_MAX)
+    
+    # Step 8: Log the analysis result to database (non-blocking)
+    # Audit log for post-hoc safety analysis
     try:
         log_risk_event(
             db=db,
             prompt=request.prompt,
             response=request.response,
-            final_risk_score=aggregated_result["final_score"],
-            flags=aggregated_result["flags"],
-            confidence=aggregated_result.get("confidence")
+            final_risk_score=aligned_final_score,
+            flags=aggregated_result["flags"],  # Legacy flags field
+            confidence=aggregated_result.get("confidence"),
+            decision=policy_decision.action.value,  # Audit field
+            decision_reason=policy_decision.explanation,  # Audit field
+            signals=aggregated_result["flags"]  # Audit field - store flags as signals
         )
     except Exception as e:
-        # Logging failure should not break API response
+        # Logging failure should not affect API response
         print(f"Failed to log risk event: {e}")
+        # Continue with API response - logging failures are non-blocking
     
-    # Step 8: Return final analysis results with decision and action
+    # Step 9: Return final analysis results with decision and action
     return AnalyzeResponse(
-        final_risk_score=aggregated_result["final_score"],
+        final_risk_score=aligned_final_score,
         flags=aggregated_result["flags"],
         confidence=aggregated_result.get("confidence"),
         decision=policy_decision.action.value,
