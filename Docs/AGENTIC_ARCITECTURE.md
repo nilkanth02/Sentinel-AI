@@ -1,25 +1,49 @@
+# Agentic Architecture Flow
+
+## SentinelAI Agentic Risk Monitoring System
 
 ```mermaid
-graph LR
-    subgraph API
-        A[/api/analyze/]
-    end
-    subgraph Signal Registry
-        B[Detectors]
-    end
-    subgraph Risk Reasoner (Agent)
-        C[Reasoner]
-    end
-    subgraph Policy Engine
-        D[Policy]
-    end
-    subgraph Action + Log
-        E[Action / Log]
+flowchart TD
+    Client[Client Application]
+    Sentinel[SentinelAI API]
+
+    subgraph "Signal Detection Layer"
+        PromptMon[Prompt Anomaly Detector]
+        OutputMon[Output Risk Scorer]
+        SignalReg[Signal Registry]
     end
 
-    A --> B
-    B --> C
-    C --> D
-    D --> E
+    subgraph "Agentic Reasoning Layer"
+        RiskReasoner[Risk Reasoner Agent]
+    end
 
+    subgraph "Policy & Action Layer"
+        PolicyEngine[Policy Engine]
+        ActionExecutor[Action Executor]
+    end
+
+    subgraph "Storage & Observability"
+        RiskDB[(Risk Logs)]
+        ActionDB[(Action Logs)]
+    end
+
+    %% Flow
+    Client --> Sentinel
+    Sentinel --> PromptMon
+    Sentinel --> OutputMon
+
+    PromptMon --> SignalReg
+    OutputMon --> SignalReg
+
+    SignalReg --> RiskReasoner
+    RiskReasoner --> PolicyEngine
+    PolicyEngine --> ActionExecutor
+
+    ActionExecutor --> RiskDB
+    ActionExecutor --> ActionDB
+
+    %% Styling
+    style SignalReg fill:#99ff99,stroke:#333,stroke-width:2px
+    style RiskReasoner fill:#ff9999,stroke:#333,stroke-width:2px
+    style PolicyEngine fill:#99ccff,stroke:#333,stroke-width:2px
 ```

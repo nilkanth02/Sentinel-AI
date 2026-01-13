@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.api.routes import router
+from app.api.baseline_routes import router as baseline_router
 from app.storage.db import init_db
 
 app = FastAPI(title="Sentinel AI API", version="1.0.0")
@@ -10,6 +11,9 @@ async def startup_event():
 
 # Include the analysis router
 app.include_router(router, prefix="/api")
+
+# Include the baseline management router
+app.include_router(baseline_router, prefix="/api")
 
 
 @app.get("/health")

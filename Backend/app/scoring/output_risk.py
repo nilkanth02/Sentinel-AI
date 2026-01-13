@@ -25,7 +25,9 @@ class OutputRiskScorer:
             "violence": {
                 "patterns": [
                     r"\b(kill|murder|harm|hurt|injure|attack|assault|violence)\b",
+                    r"\b(physically harm|physical harm|cause harm)\b",
                     r"\b(weapon|gun|knife|bomb|explosive)\b",
+                    r"\b(exploit|exploits|exploiting|take advantage)\b",
                     r"\b(torture|abuse|brutal|savage)\b"
                 ],
                 "weight": 0.8
@@ -72,6 +74,17 @@ class OutputRiskScorer:
                     r"\b(gore|blood|disturbing|shocking)\b"
                 ],
                 "weight": 0.7
+            },
+            "harmful_instructions": {
+                "patterns": [
+                    r"\b(how to exploit|exploit vulnerabilities|vulnerabilities are exploited)\b",
+                    r"\b(step by step|step-by-step|detailed instructions)\b",
+                    r"\b(bypass security|bypass protection|circumvent security)\b",
+                    r"\b(how to hack|how to crack|how to break into)\b",
+                    r"\b(build a bomb|make a weapon|create harmful)\b",
+                    r"\b(illegal method|criminal technique|unlawful act)\b"
+                ],
+                "weight": 0.85
             }
         }
         
@@ -166,6 +179,11 @@ class OutputRiskScorer:
         # Calculate overall risk score (maximum of category scores)
         overall_score = max(category_scores.values()) if category_scores else 0.0
         
+        # Ensure high-risk keywords trigger high risk scores
+        high_risk_detected = any(category in ["violence", "hate_speech", "self_harm", "harmful_instructions"] for category in triggered_flags)
+        if high_risk_detected:
+            overall_score = max(overall_score, 0.8)
+        
         # Apply additional heuristics for edge cases
         if overall_score > 0:
             # Boost score if multiple categories are triggered
@@ -175,6 +193,10 @@ class OutputRiskScorer:
             # Boost score for very long outputs with risks (potential for extensive harmful content)
             if len(text) > 1000 and overall_score > 0.5:
                 overall_score = min(1.0, overall_score * 1.1)
+        
+        # Add unsafe_output flag for any detected risks
+        if triggered_flags:
+            triggered_flags.append("unsafe_output")
         
         return {
             "risk_score": round(overall_score, 3),
@@ -200,7 +222,8 @@ class OutputRiskScorer:
             "illegal_activities": "Content promoting or describing illegal acts",
             "misinformation": "False or misleading information",
             "privacy_violation": "Unauthorized personal or sensitive data",
-            "inappropriate_content": "Content unsuitable for general audiences"
+            "inappropriate_content": "Content unsuitable for general audiences",
+            "harmful_instructions": "Content providing step-by-step instructions for harmful activities"
         }
         return descriptions.get(category, "Unknown risk category")
 
