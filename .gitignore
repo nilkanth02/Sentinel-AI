@@ -178,3 +178,5 @@ out/
 build/
 dist/
 
+# add .pytest_cache
+.pytest_cache/

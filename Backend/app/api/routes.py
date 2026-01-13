@@ -177,9 +177,12 @@ async def get_risk_logs(limit: int = 50, db: Session = Depends(get_db)):
         RiskLogResponse(
             id=log.id,
             created_at=log.created_at,
-            final_risk_score=log.final_risk_score,  # ✅ correct DB field
+            final_risk_score=log.final_risk_score,
             flags=json.loads(log.flags) if log.flags else [],
             confidence=log.confidence,
+            decision=log.decision,
+            action_taken=log.decision,
+            decision_reason=log.decision_reason,
         )
         for log in logs
     ]

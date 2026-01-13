@@ -1,44 +1,53 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { getRiskLogs } from '../services/logs'
 
-// Custom hook for fetching risk logs (using direct fetch for testing)
-export function useRiskLogs(params: { limit?: number } = { limit: 50 }) {
-  const [data, setData] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isError, setIsError] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+interface RiskLogFilters {
+  decision?: string
+  minRiskScore?: number
+}
 
-  useEffect(() => {
-    console.log('useRiskLogs useEffect called with params:', params)
-    const fetchData = async () => {
-      console.log('Starting fetch...')
-      setIsLoading(true)
-      setIsError(false)
-      setError(null)
-      
+// Custom hook for fetching risk logs with client-side filtering
+export function useRiskLogs(
+  params: { limit?: number } = { limit: 50 },
+  filters: RiskLogFilters = {}
+) {
+  console.log('useRiskLogs called with params:', params, 'filters:', filters)
+  
+  return useQuery({
+    queryKey: ['riskLogs', params, filters],
+    queryFn: async () => {
+      console.log('queryFn called, making API request...')
       try {
-        const response = await fetch(`http://localhost:8000/api/logs?limit=${params.limit || 50}`)
-        console.log('Fetch response status:', response.status)
+        const result = await getRiskLogs(params)
+        console.log('API response received:', result)
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        // Apply client-side filtering
+        let filteredLogs = [...result]
+        
+        // Filter by decision
+        if (filters.decision && filters.decision !== 'all') {
+          filteredLogs = filteredLogs.filter(log => 
+            log.decision === filters.decision
+          )
         }
         
-        const result = await response.json()
-        console.log('Fetch result:', result)
-        setData(result)
-      } catch (err) {
-        console.error('Fetch error:', err)
-        setError(err instanceof Error ? err : new Error('Unknown error'))
-        setIsError(true)
-      } finally {
-        setIsLoading(false)
+        // Filter by minimum risk score
+        if (filters.minRiskScore !== undefined) {
+          filteredLogs = filteredLogs.filter(log => 
+            log.final_risk_score >= filters.minRiskScore!
+          )
+        }
+        
+        console.log('Filtered logs:', filteredLogs)
+        return filteredLogs
+      } catch (error) {
+        console.error('API error in queryFn:', error)
+        throw error
       }
-    }
-
-    fetchData()
-  }, [params.limit])
-
-  return { data, isLoading, isError, error }
+    },
+    retry: false, // Disable retry for debugging
+    refetchOnWindowFocus: false,
+  })
 }
