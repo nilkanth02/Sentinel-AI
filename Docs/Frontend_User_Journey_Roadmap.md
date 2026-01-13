@@ -1,3 +1,5 @@
+
+```
 User opens app
     ↓
 Shows Dashboard with KPIs
@@ -11,3 +13,4 @@ Selects a log → Detail View
 Optional: Baselines / Settings
     ↓
 Exports / generates report
+```
