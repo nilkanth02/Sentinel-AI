@@ -1,0 +1,31 @@
+# Testing Dependencies for SentinelAI Backend
+
+# Core testing framework
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# HTTP testing
+httpx==0.28.1
+
+# Database testing
+sqlalchemy==2.0.45
+
+# FastAPI testing
+fastapi==0.128.0
+starlette==0.50.0
+
+# Additional testing utilities
+pytest-mock==3.14.0
+pytest-timeout==2.3.1
+pytest-xdist==3.6.1  # For parallel test execution
+
+# Code quality
+black==25.1.0
+flake8==7.1.1
+mypy==1.14.1
+isort==5.13.2
+
+# Coverage reporting
+coverage[toml]==7.6.10
+
