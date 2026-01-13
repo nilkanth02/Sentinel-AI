@@ -1,0 +1,72 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      working-directory: ./Sentinel-AI/Backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-test.txt
+        pip install fastapi uvicorn sqlalchemy pydantic numpy sentence-transformers torch transformers scikit-learn
+    
+    - name: Run tests with coverage
+      working-directory: ./Sentinel-AI/Backend
+      run: |
+        pytest --cov=app --cov-report=xml --cov-report=term-missing -v
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./Sentinel-AI/Backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Check code formatting
+      working-directory: ./Sentinel-AI/Backend
+      run: |
+        black --check app/ tests/ || true
+    
+    - name: Check import sorting
+      working-directory: ./Sentinel-AI/Backend
+      run: |
+        isort --check-only app/ tests/ || true
+    
+    - name: Lint with flake8
+      working-directory: ./Sentinel-AI/Backend
+      run: |
+        flake8 app/ tests/ --max-line-length=100 --count --statistics || true
+    
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "Tests completed for Python ${{ matrix.python-version }}"
+
