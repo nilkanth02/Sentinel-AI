@@ -105,6 +105,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+
+# Database
+..\Backend\sentinel_ai.db
+Sentinel-AI\Backend\sentinel_ai.db
+sentinel_ai.db
+
 # Environments
 .env
 .venv
