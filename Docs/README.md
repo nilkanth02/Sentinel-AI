@@ -25,7 +25,7 @@ a unified risk score and explainable flags for each interaction.
 - Detects prompt distribution shifts using embedding similarity
 - Flags risky model outputs using rule-based heuristics
 - Aggregates multiple weak signals into a unified risk score
-- Exposes a simple `/api/analyze` endpoint for integration
+- Exposes a simple `/api/analyze` endpoint for integration.
 
 
 ## Non-goals
