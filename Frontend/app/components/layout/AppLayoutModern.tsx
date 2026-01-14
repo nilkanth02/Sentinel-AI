@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { TopNavbar } from './TopNavbar'
 import { SidebarModern } from './SidebarModern'
+import { PageTransition } from '@/components/ui'
 
 interface AppLayoutProps {
   children: React.ReactNode

@@ -2,7 +2,7 @@ import { AppLayoutModern } from '../../components/layout/AppLayoutModern'
 import { fetchRiskLog } from './fetch-log'
 import { RiskLogDetailClientModern } from './RiskLogDetailClientModern'
 
-export default async function LogDetailPage({ params }: { params: { id: string } }) {
+export default async function LogDetailPageModern({ params }: { params: { id: string } }) {
   console.log('LogDetailPageModern server component rendering with params:', params)
   
   // Fetch data on the server

@@ -1,5 +1,6 @@
 'use client'
 
+import { AnimatedCard } from '@/components/ui/animated-card'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,60 +44,62 @@ export default function DashboardPageModern() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="p-6">
+          <AnimatedCard delay={0} className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Risk Events</p>
-                <p className="text-2xl font-bold text-foreground">1,247</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Risks</p>
+                <p className="text-2xl font-bold text-foreground">247</p>
+                <p className="text-xs text-muted-foreground">+12% from last week</p>
               </div>
-              <Badge variant="secondary" className="text-xs">
-                +12.5% from last month
-              </Badge>
+              <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                <div className="h-4 w-4 bg-red-500 rounded-full"></div>
+              </div>
             </div>
-          </Card>
+          </AnimatedCard>
 
-          <Card className="p-6">
+          <AnimatedCard delay={0.1} className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">High Risk Events</p>
-                <p className="text-2xl font-bold text-destructive">23</p>
+                <p className="text-sm font-medium text-muted-foreground">Critical Alerts</p>
+                <p className="text-2xl font-bold text-foreground">18</p>
+                <p className="text-xs text-muted-foreground">-5% from last week</p>
               </div>
-              <Badge variant="destructive" className="text-xs">
-                +8 this week
-              </Badge>
+              <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                <div className="h-4 w-4 bg-orange-500 rounded-full"></div>
+              </div>
             </div>
-          </Card>
+          </AnimatedCard>
 
-          <Card className="p-6">
+          <AnimatedCard delay={0.2} className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Risk Score</p>
                 <p className="text-2xl font-bold text-foreground">0.42</p>
+                <p className="text-xs text-muted-foreground">-0.08 from last week</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-xs text-muted-foreground">Low</span>
+              <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                <div className="h-4 w-4 bg-yellow-500 rounded-full"></div>
               </div>
             </div>
-          </Card>
+          </AnimatedCard>
 
-          <Card className="p-6">
+          <AnimatedCard delay={0.3} className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Policies</p>
-                <p className="text-2xl font-bold text-foreground">8</p>
+                <p className="text-sm font-medium text-muted-foreground">Resolved Today</p>
+                <p className="text-2xl font-bold text-foreground">89</p>
+                <p className="text-xs text-muted-foreground">+23% from yesterday</p>
               </div>
-              <Badge variant="secondary" className="text-xs">
-                2 new this month
-              </Badge>
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <div className="h-4 w-4 bg-green-500 rounded-full"></div>
+              </div>
             </div>
-          </Card>
-        </div>
+          </AnimatedCard>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Risk Trend Chart */}
-          <Card className="p-6">
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Risk Trend Chart */}
+          <AnimatedCard delay={0.4} className="p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Risk Score Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={mockData}>
@@ -111,8 +114,8 @@ export default function DashboardPageModern() {
                     if (active && payload && payload.length) {
                       return (
                         <div className="bg-popover p-2 rounded shadow-lg border">
-                          <p className="font-semibold">{`${label}: ${payload[0].riskScore}`}</p>
-                          <p className="text-sm text-muted-foreground">{`${payload[0].logs} events`}</p>
+                          <p className="font-semibold">{`${label}: ${(payload[0] as any).value}`}</p>
+                          <p className="text-sm text-muted-foreground">{`${(payload[0] as any).payload?.logs || 0} events`}</p>
                         </div>
                       )
                     }
@@ -122,16 +125,16 @@ export default function DashboardPageModern() {
                 <Line 
                   type="monotone" 
                   dataKey="riskScore" 
-                  stroke="#8884d" 
+                  stroke="#8884d8" 
                   strokeWidth={2}
-                  dot={{ fill: "#8884d", strokeWidth: 2 }}
+                  dot={{ fill: "#8884d8", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
-          </Card>
+          </AnimatedCard>
 
           {/* Flag Frequency Chart */}
-          <Card className="p-6">
+          <AnimatedCard delay={0.5} className="p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Flag Frequency</h3>
             <div className="space-y-4">
               {flagData.map((flag, index) => (
@@ -155,11 +158,11 @@ export default function DashboardPageModern() {
                 </div>
               ))}
             </div>
-          </Card>
+          </AnimatedCard>
         </div>
 
         {/* Recent Logs Table */}
-        <Card className="p-6">
+        <AnimatedCard delay={0.6} className="p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Recent Risk Events</h3>
           <div className="space-y-2">
             {[
@@ -193,7 +196,7 @@ export default function DashboardPageModern() {
               </div>
             ))}
           </div>
-        </Card>
+        </AnimatedCard>
       </div>
     </div>
   )

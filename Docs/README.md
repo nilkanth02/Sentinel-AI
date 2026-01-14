@@ -32,7 +32,7 @@ a unified risk score and explainable flags for each interaction.
 
 - SentinelAI does not generate model outputs
 - It does not guarantee correctness or alignment
-- It favors explainability over complex black-box models
+- It favors explainability over complex black-box models.
 
 
 ## Example usage
