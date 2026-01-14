@@ -26,7 +26,7 @@ export function TableSkeleton({ rows = 5, columns = 4, ...props }: TableSkeleton
               bg="gray.100"
               borderRadius="md"
               h={8}
-              animate="pulse"
+              className="animate-pulse"
             />
           ))}
         </Box>

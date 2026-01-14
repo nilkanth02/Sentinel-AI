@@ -1,12 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ChakraProvider } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { theme } from './theme'
+import { ThemeProvider } from 'next-themes'
 
-// Providers component wraps app with React Query and Chakra UI
+// Providers component wraps app with React Query and theme support
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -18,14 +17,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
   }))
 
-  console.log('Providers rendering with QueryClient')
-  
   return (
     <QueryClientProvider client={queryClient}>
-      <ChakraProvider theme={theme}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
         {children}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </ChakraProvider>
+        {process.env.NODE_ENV === 'development' ? (
+          <ReactQueryDevtools initialIsOpen={false} />
+        ) : null}
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { 
   LayoutDashboard,
   FileText,
@@ -28,36 +29,54 @@ export function SidebarModern({ isOpen = true, onClose }: SidebarProps) {
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-card border-r transition-all duration-200",
+      "flex flex-col h-full bg-card border-r transition-all duration-200 overflow-hidden",
       isOpen ? "w-64" : "w-0"
     )}>
       <div className="p-4">
-        <h2 className="text-lg font-semibold text-foreground">Navigation</h2>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold">
+            S
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-semibold text-foreground">SentinelAI</div>
+            <div className="text-xs text-muted-foreground">Safety Console</div>
+          </div>
+        </div>
       </div>
       
       <Separator />
       
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4" aria-label="Primary navigation">
         <ul className="space-y-2">
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = item.href === '/dashboard'
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
             
             return (
               <li key={item.href}>
                 <Button
-                  variant={isActive ? "default" : "ghost"}
+                  asChild
+                  variant={isActive ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start",
-                    isActive && "bg-primary text-primary-foreground"
+                    "w-full justify-start relative",
+                    isActive && "bg-primary/10 text-primary hover:bg-primary/15",
+                    isActive && "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-1 before:rounded-r before:bg-primary"
                   )}
-                  onClick={() => {
-                    // Navigate to the item
-                    window.location.href = item.href
-                  }}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {item.label}
+                  <Link
+                    href={item.href}
+                    onClick={() => onClose?.()}
+                    aria-current={isActive ? 'page' : undefined}
+                    className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+                  >
+                    <Icon className={cn(
+                      "mr-2 h-4 w-4",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    {item.label}
+                  </Link>
                 </Button>
               </li>
             )

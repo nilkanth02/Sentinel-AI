@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function SettingsPageModern() {
   return (
     <AppLayoutModern>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Page Title */}
+      <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Manage your application preferences and configuration</p>

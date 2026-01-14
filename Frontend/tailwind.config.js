@@ -41,6 +41,13 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Domain-specific tokens for SentinelAI risk levels
+        risk: {
+          low: "#48bb78",       // green-400
+          medium: "#ed8936",    // orange-400
+          high: "#f56565",      // red-400
+          critical: "#e53e3e",  // red-600
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

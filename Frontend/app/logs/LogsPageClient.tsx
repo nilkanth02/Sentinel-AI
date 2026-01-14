@@ -12,8 +12,9 @@ interface LogsPageClientProps {
 }
 
 export function LogsPageClient({ initialLogs, initialError }: LogsPageClientProps) {
-  console.log('LogsPageClient rendering with initialLogs:', initialLogs?.length || 0, 'logs')
-  console.log('Initial error:', initialError)
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) console.log('LogsPageClient rendering with initialLogs:', initialLogs?.length || 0, 'logs')
+  if (isDev) console.log('Initial error:', initialError)
   
   // Error state for retry functionality
   const [error, setError] = useState<string | null>(initialError || null)
@@ -46,7 +47,7 @@ export function LogsPageClient({ initialLogs, initialError }: LogsPageClientProp
       const logs = await response.json()
       // Note: In a real implementation, you'd update the parent component or use a state management system
       // For now, we'll just clear the error and show a success message
-      console.log('Retry successful, fetched logs:', logs?.length || 0)
+      if (isDev) console.log('Retry successful, fetched logs:', logs?.length || 0)
       setError(null)
       
       // Force a page refresh to re-fetch data

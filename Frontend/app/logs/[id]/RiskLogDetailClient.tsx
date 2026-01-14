@@ -13,8 +13,6 @@ interface RiskLogDetailClientProps {
 }
 
 export function RiskLogDetailClient({ log, logId }: RiskLogDetailClientProps) {
-  console.log('RiskLogDetailClient rendering with log:', log)
-
   return (
     <>
       {/* Not Found State */}

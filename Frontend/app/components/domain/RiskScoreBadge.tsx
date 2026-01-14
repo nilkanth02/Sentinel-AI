@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge } from '../ui/Badge'
+import { Badge } from '@/components/ui/badge'
 
 interface RiskScoreBadgeProps {
   score: number
@@ -13,6 +13,12 @@ export function RiskScoreBadge({ score, label }: RiskScoreBadgeProps) {
                    score >= 0.6 ? 'high' :
                    score >= 0.4 ? 'medium' : 'low'
 
+  const badgeVariant =
+    severity === 'critical' ? 'destructive' :
+    severity === 'high' ? 'default' :
+    severity === 'medium' ? 'secondary' :
+    'outline'
+
   return (
     <div>
       {label && (
@@ -20,7 +26,7 @@ export function RiskScoreBadge({ score, label }: RiskScoreBadgeProps) {
           {label}
         </div>
       )}
-      <Badge variant={severity}>
+      <Badge variant={badgeVariant}>
         {score.toFixed(2)}
       </Badge>
     </div>

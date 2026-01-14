@@ -7,15 +7,12 @@ import { fetchRiskLogs } from './fetch-logs'
 import { LogsPageClient } from './LogsPageClient'
 
 export default async function LogsPage() {
-  console.log('LogsPage server component rendering')
-  
   // Fetch data on the server with error handling
   let logs = []
   let error = null
   
   try {
     logs = await fetchRiskLogs(50)
-    console.log('Server-side fetched logs:', logs?.length || 0, 'logs')
   } catch (err) {
     console.error('Error fetching logs on server:', err)
     error = err instanceof Error ? err.message : 'Failed to fetch risk logs'

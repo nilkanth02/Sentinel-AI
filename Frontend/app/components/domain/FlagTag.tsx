@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge } from '../ui/Badge'
+import { Badge } from '@/components/ui/badge'
 
 interface FlagTagProps {
   flag: string
@@ -9,24 +9,20 @@ interface FlagTagProps {
 }
 
 export function FlagTag({ flag, variant = 'medium', onRemove }: FlagTagProps) {
+  const badgeVariant =
+    variant === 'critical' ? 'destructive' :
+    variant === 'high' ? 'default' :
+    variant === 'medium' ? 'secondary' :
+    'outline'
+
   return (
-    <Badge variant={variant} style={{ position: 'relative', paddingRight: '24px' }}>
+    <Badge variant={badgeVariant} className="relative pr-6">
       {flag}
       {onRemove && (
         <button
           onClick={onRemove}
-          style={{
-            position: 'absolute',
-            right: '8px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            color: 'currentColor',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: '1'
-          }}
+          type="button"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none text-current opacity-80 hover:opacity-100"
           aria-label={`Remove ${flag} flag`}
         >
           ×

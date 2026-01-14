@@ -4,19 +4,20 @@ import { useQuery } from '@tanstack/react-query'
 
 // Custom hook for fetching a single risk log by ID
 export function useRiskLog(logId: string | number | undefined) {
-  console.log('useRiskLog hook called with logId:', logId)
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) console.log('useRiskLog hook called with logId:', logId)
   
   return useQuery({
     queryKey: ['riskLog', logId],
     queryFn: async () => {
-      console.log('React Query queryFn called for logId:', logId)
+      if (isDev) console.log('React Query queryFn called for logId:', logId)
       
       if (!logId) {
         throw new Error('Log ID is required')
       }
       
-      const response = await fetch(`http://localhost:8000/api/logs/${logId}`)
-      console.log('Fetch response status:', response.status)
+      const response = await fetch(`/api/logs/${logId}`, { cache: 'no-store' })
+      if (isDev) console.log('Fetch response status:', response.status)
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -26,7 +27,7 @@ export function useRiskLog(logId: string | number | undefined) {
       }
       
       const result = await response.json()
-      console.log('Fetch result:', result)
+      if (isDev) console.log('Fetch result:', result)
       return result
     },
     enabled: !!logId,

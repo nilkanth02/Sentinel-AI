@@ -1,11 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ArrowLeft, Download } from 'lucide-react'
 
 interface RiskLogDetailClientModernProps {
   log: any
@@ -13,8 +14,6 @@ interface RiskLogDetailClientModernProps {
 }
 
 export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientModernProps) {
-  console.log('RiskLogDetailClientModern rendering with log:', log)
-
   if (!log) {
     return (
       <Card className="p-8">
@@ -23,6 +22,27 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
         </div>
       </Card>
     )
+  }
+
+  const handleExport = () => {
+    try {
+      const payload = {
+        id: logId,
+        exported_at: new Date().toISOString(),
+        log,
+      }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `risk-log-${logId}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      // no-op
+    }
   }
 
   const riskScore = typeof log?.final_risk_score === 'number' ? log.final_risk_score : 0
@@ -34,17 +54,25 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
   const createdAt = log?.created_at ? new Date(log.created_at) : new Date()
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Risk Log Details</h1>
           <p className="text-muted-foreground">Log ID: #{logId}</p>
         </div>
-        <Button variant="outline" onClick={() => window.history.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Logs
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/logs">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Logs
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        </div>
       </div>
 
       {/* Main Content Grid */}
@@ -155,10 +183,61 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
         <div className="lg:col-span-1 space-y-6">
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Decision Reason</h3>
-            <p className="text-muted-foreground leading-relaxed">{decisionReason}</p>
+            <div className="max-h-56 overflow-auto rounded-md border bg-muted/20 p-3">
+              <p className="text-muted-foreground leading-relaxed">{decisionReason}</p>
+            </div>
           </Card>
         </div>
       </div>
+
+      {(typeof log?.prompt === 'string' || typeof log?.response === 'string') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {typeof log?.prompt === 'string' && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Prompt</h3>
+              <div className="max-h-72 overflow-auto rounded-md border bg-muted/20 p-3">
+                <pre className="text-sm whitespace-pre-wrap break-words text-foreground/90">{log.prompt}</pre>
+              </div>
+            </Card>
+          )}
+          {typeof log?.response === 'string' && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Response</h3>
+              <div className="max-h-72 overflow-auto rounded-md border bg-muted/20 p-3">
+                <pre className="text-sm whitespace-pre-wrap break-words text-foreground/90">{log.response}</pre>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Signals Breakdown</h3>
+        {log?.signals && typeof log.signals === 'object' ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Signal</TableHead>
+                <TableHead>Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(log.signals as Record<string, unknown>).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell className="font-medium">{key}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+                      ? String(value)
+                      : JSON.stringify(value)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground">No signals breakdown available for this log.</p>
+        )}
+      </Card>
 
       {/* Additional Details Section */}
       <Card className="p-6">

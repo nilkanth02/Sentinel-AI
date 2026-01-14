@@ -1,7 +1,14 @@
+import { headers } from 'next/headers'
+
 // Server-side data fetching function
 export async function fetchRiskLogs(limit: number = 50) {
   try {
-    const response = await fetch(`http://localhost:8000/api/logs?limit=${limit}`, {
+    const h = headers()
+    const proto = h.get('x-forwarded-proto') || 'http'
+    const host = h.get('x-forwarded-host') || h.get('host')
+    const origin = host ? `${proto}://${host}` : 'http://localhost:3000'
+
+    const response = await fetch(`${origin}/api/logs?limit=${limit}`, {
       cache: 'no-store', // Disable caching for real-time data
     })
     

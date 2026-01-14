@@ -1,11 +1,16 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, type MotionProps } from 'framer-motion'
 import { Card } from './card'
 import { cn } from '@/lib/utils'
-import { HTMLAttributes, forwardRef } from 'react'
+import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react'
 
-interface AnimatedCardProps extends HTMLAttributes<HTMLDivElement> {
+type DivProps = ComponentPropsWithoutRef<'div'>
+
+interface AnimatedCardProps
+  extends Omit<DivProps, keyof MotionProps>,
+    Omit<MotionProps, 'children'> {
+  children?: ReactNode
   delay?: number
   hover?: boolean
 }
@@ -29,10 +34,10 @@ export const AnimatedCard = forwardRef<HTMLDivElement, AnimatedCardProps>(
           ease: "easeOut"
         }}
         whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : undefined}
-        className={cn("transition-shadow duration-200", className)}
+        className="transition-shadow duration-200"
         {...props}
       >
-        <Card>
+        <Card className={cn(className)}>
           {children}
         </Card>
       </motion.div>

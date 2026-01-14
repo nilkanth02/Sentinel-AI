@@ -13,15 +13,16 @@ export function useRiskLogs(
   params: { limit?: number } = { limit: 50 },
   filters: RiskLogFilters = {}
 ) {
-  console.log('useRiskLogs called with params:', params, 'filters:', filters)
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) console.log('useRiskLogs called with params:', params, 'filters:', filters)
   
   return useQuery({
     queryKey: ['riskLogs', params, filters],
     queryFn: async () => {
-      console.log('queryFn called, making API request...')
+      if (isDev) console.log('queryFn called, making API request...')
       try {
         const result = await getRiskLogs(params)
-        console.log('API response received:', result)
+        if (isDev) console.log('API response received:', result)
         
         // Apply client-side filtering
         let filteredLogs = [...result]
@@ -40,7 +41,7 @@ export function useRiskLogs(
           )
         }
         
-        console.log('Filtered logs:', filteredLogs)
+        if (isDev) console.log('Filtered logs:', filteredLogs)
         return filteredLogs
       } catch (error) {
         console.error('API error in queryFn:', error)

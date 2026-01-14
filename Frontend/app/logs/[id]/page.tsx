@@ -3,12 +3,8 @@ import { fetchRiskLog } from './fetch-log'
 import { RiskLogDetailClientModern } from './RiskLogDetailClientModern'
 
 export default async function LogDetailPage({ params }: { params: { id: string } }) {
-  console.log('LogDetailPageModern server component rendering with params:', params)
-  
   // Fetch data on the server
   const log = await fetchRiskLog(params.id)
-  
-  console.log('Server-side fetched log:', log)
 
   return (
     <AppLayoutModern>

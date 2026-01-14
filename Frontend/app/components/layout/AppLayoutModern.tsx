@@ -1,26 +1,43 @@
 'use client'
 
-import { useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { TopNavbar } from './TopNavbar'
 import { SidebarModern } from './SidebarModern'
-import { PageTransition } from '@/components/ui'
+import { PageTransition, ThemeToggle } from '@/components/ui'
 
 interface AppLayoutProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function AppLayoutModern({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const pathname = usePathname()
+
+  const topNavItems = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/logs', label: 'Risk Logs' },
+    { href: '/baselines', label: 'Baselines' },
+    { href: '/settings', label: 'Settings' },
+  ]
+
+  const breadcrumbLabel = (() => {
+    if (pathname === '/dashboard') return 'Dashboard'
+    if (pathname === '/logs') return 'Risk Logs'
+    if (pathname?.startsWith('/logs/')) return 'Risk Logs / Detail'
+    if (pathname === '/baselines') return 'Baselines'
+    if (pathname === '/settings') return 'Settings'
+    return 'Console'
+  })()
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,41 +46,79 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-bold text-foreground">SentinelAI</h1>
+            <span className="hidden sm:inline text-sm text-muted-foreground">/</span>
+            <span className="hidden sm:inline text-sm font-medium text-foreground">{breadcrumbLabel}</span>
           </div>
+
+          <nav className="hidden md:flex items-center gap-1" aria-label="Top navigation">
+            {topNavItems.map((item) => {
+              const isActive = item.href === '/dashboard'
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + '/')
+
+              return (
+                <Button
+                  key={item.href}
+                  asChild
+                  variant={isActive ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'h-9',
+                    isActive && 'bg-primary/10 text-primary hover:bg-primary/15'
+                  )}
+                >
+                  <Link href={item.href} aria-current={isActive ? 'page' : undefined}>
+                    {item.label}
+                  </Link>
+                </Button>
+              )
+            })}
+          </nav>
           
-          {/* User Menu */}
-          <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-                  U
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
-                <div className="flex items-center space-x-2">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* User Menu */}
+            <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 rounded-full"
+                  aria-label="Open user menu"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
                     U
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Admin User</p>
-                    <p className="text-xs text-muted-foreground">admin@sentinel.ai</p>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold">
+                      U
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Admin User</p>
+                      <p className="text-xs text-muted-foreground">admin@sentinel.ai</p>
+                    </div>
                   </div>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Button variant="ghost" className="w-full justify-start">
-                  Settings
-                </Button>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Button variant="ghost" className="w-full justify-start">
-                  Sign out
-                </Button>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Button asChild variant="ghost" className="w-full justify-start">
+                    <Link href="/settings" onClick={() => setUserMenuOpen(false)}>
+                      Settings
+                    </Link>
+                  </Button>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Button variant="ghost" className="w-full justify-start">
+                    Sign out
+                  </Button>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           {/* Sidebar Toggle */}
           <Button
@@ -71,6 +126,7 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
             size="sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="lg:hidden"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -80,9 +136,19 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
       </header>
 
       <div className="flex">
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] lg:hidden"
+          />
+        )}
+
         {/* Modern Sidebar */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-200 ease-in-out",
+          "fixed left-0 top-16 bottom-0 z-40 w-64 transform transition-transform duration-200 ease-in-out",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <SidebarModern isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -93,9 +159,13 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
           "flex-1 min-h-screen transition-all duration-200 ease-in-out",
           sidebarOpen ? "lg:ml-64" : "lg:ml-0"
         )}>
-          <div className="container mx-auto p-6">
-            {children}
-          </div>
+          <PageTransition>
+            <div className="min-h-[calc(100vh-4rem)] bg-muted/20">
+              <div className="container mx-auto p-6">
+                {children}
+              </div>
+            </div>
+          </PageTransition>
         </main>
       </div>
     </div>
