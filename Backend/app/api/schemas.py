@@ -23,6 +23,9 @@ class RiskLogResponse(BaseModel):
     final_risk_score: float
     flags: List[str]
     confidence: Optional[float] = None
+    decision: Optional[str] = None
+    action_taken: Optional[str] = None
+    decision_reason: Optional[str] = None
     
     class Config:
         from_attributes = True
