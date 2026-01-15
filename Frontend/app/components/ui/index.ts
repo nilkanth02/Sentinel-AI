@@ -14,6 +14,7 @@ export { SkeletonShimmer } from './skeleton-shimmer'
 export { ThemeToggle } from './theme-toggle'
 export { Tooltip } from './tooltip'
 export { Separator } from './separator'
+export { Slider } from './slider'
 export { 
   Dialog,
   DialogTrigger,

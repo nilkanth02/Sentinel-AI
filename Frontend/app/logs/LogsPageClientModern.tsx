@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -29,11 +31,11 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
   const [endDate, setEndDate] = useState('')
   const [minRiskScore, setMinRiskScore] = useState(0)
   const [maxRiskScore, setMaxRiskScore] = useState(1)
+  const [decision, setDecision] = useState<string>('all')
   const [selectedFlags, setSelectedFlags] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [error, setError] = useState<string | null>(initialError || null)
   const [isRetrying, setIsRetrying] = useState(false)
-  const isDev = process.env.NODE_ENV === 'development'
   const pageSize = 10
 
   const availableFlags = Array.from(
@@ -61,7 +63,10 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
     const flags = Array.isArray(log?.flags) ? log.flags : []
     const matchesFlags = selectedFlags.length === 0 || selectedFlags.every((f) => flags.includes(f))
 
-    return matchesSearch && startOk && endOk && matchesRiskScore && matchesFlags
+    const logDecision = typeof log?.decision === 'string' ? log.decision : ''
+    const matchesDecision = decision === 'all' || logDecision === decision
+
+    return matchesSearch && startOk && endOk && matchesRiskScore && matchesFlags && matchesDecision
   }) : []
 
   const totalPages = Math.ceil(filteredLogs.length / pageSize)
@@ -74,12 +79,10 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
     try {
       const response = await fetch('/api/logs?limit=50', { cache: 'no-store' })
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-      const logs = await response.json()
-      if (isDev) console.log('Retry successful, fetched logs:', logs?.length || 0)
+      await response.json()
       setError(null)
       window.location.reload()
     } catch (err) {
-      console.error('Retry failed:', err)
       setError(err instanceof Error ? err.message : 'Failed to retry fetching logs')
     } finally {
       setIsRetrying(false)
@@ -97,6 +100,7 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
     setEndDate('')
     setMinRiskScore(0)
     setMaxRiskScore(1)
+    setDecision('all')
     setSelectedFlags([])
     setCurrentPage(1)
   }
@@ -185,33 +189,25 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
               />
             </div>
 
-            <div className="lg:col-span-2 grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={minRiskScore}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setMinRiskScore(Number.isFinite(v) ? Math.min(Math.max(v, 0), maxRiskScore) : 0)
+            <div className="lg:col-span-2">
+              <Select
+                value={decision}
+                onValueChange={(v) => {
+                  setDecision(v)
                   setCurrentPage(1)
                 }}
-                aria-label="Min risk score"
-              />
-              <Input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={maxRiskScore}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setMaxRiskScore(Number.isFinite(v) ? Math.max(Math.min(v, 1), minRiskScore) : 1)
-                  setCurrentPage(1)
-                }}
-                aria-label="Max risk score"
-              />
+              >
+                <SelectTrigger aria-label="Decision">
+                  <SelectValue placeholder="Decision" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All decisions</SelectItem>
+                  <SelectItem value="allow">allow</SelectItem>
+                  <SelectItem value="warn">warn</SelectItem>
+                  <SelectItem value="block">block</SelectItem>
+                  <SelectItem value="escalate">escalate</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="lg:col-span-2">
@@ -257,6 +253,30 @@ export function LogsPageClientModern({ initialLogs, initialError }: LogsPageClie
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+
+            <div className="lg:col-span-12">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Risk score range</span>
+                  <span className="font-mono text-foreground">
+                    {minRiskScore.toFixed(2)} – {maxRiskScore.toFixed(2)}
+                  </span>
+                </div>
+                <Slider
+                  value={[minRiskScore, maxRiskScore]}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={(v) => {
+                    const nextMin = Array.isArray(v) && typeof v[0] === 'number' ? v[0] : 0
+                    const nextMax = Array.isArray(v) && typeof v[1] === 'number' ? v[1] : 1
+                    setMinRiskScore(Math.min(Math.max(nextMin, 0), 1))
+                    setMaxRiskScore(Math.min(Math.max(nextMax, 0), 1))
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

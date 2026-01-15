@@ -33,6 +33,11 @@ def list_active_baselines(db: Session) -> List[PromptBaseline]:
     return db.query(PromptBaseline).filter(PromptBaseline.active == True).all()
 
 
+def list_baselines(db: Session) -> List[PromptBaseline]:
+    """Get all prompt baselines (active and inactive)."""
+    return db.query(PromptBaseline).order_by(PromptBaseline.id.desc()).all()
+
+
 def set_baseline_active(db: Session, baseline_id: int, active: bool) -> PromptBaseline:
     """Set a baseline's active status.
     
@@ -63,6 +68,16 @@ def get_baseline_by_id(db: Session, baseline_id: int) -> PromptBaseline:
         PromptBaseline object or None if not found
     """
     return db.query(PromptBaseline).filter(PromptBaseline.id == baseline_id).first()
+
+
+def update_baseline_text(db: Session, baseline_id: int, text: str) -> PromptBaseline:
+    """Update a baseline's text."""
+    baseline = db.query(PromptBaseline).filter(PromptBaseline.id == baseline_id).first()
+    if baseline:
+        baseline.text = text
+        db.commit()
+        db.refresh(baseline)
+    return baseline
 
 
 def delete_baseline(db: Session, baseline_id: int) -> bool:

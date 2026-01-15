@@ -23,7 +23,7 @@ from app.api.schemas import AnalyzeRequest, AnalyzeResponse, RiskLogResponse
 from app.monitors.prompt_anomaly import detect_prompt_anomaly
 from app.scoring.output_risk import score_output_risk
 from app.scoring.aggregator import aggregate_risk_signals
-from app.storage.crud import log_risk_event, get_recent_risk_logs
+from app.storage.crud import log_risk_event, get_recent_risk_logs, get_risk_log_by_id
 from app.storage.db import SessionLocal
 from app.signals.registry import SignalRegistry
 from app.agent.reasoner import RiskReasoner
@@ -178,7 +178,10 @@ async def get_risk_logs(limit: int = 50, db: Session = Depends(get_db)):
             id=log.id,
             created_at=log.created_at,
             final_risk_score=log.final_risk_score,
+            prompt=log.prompt,
+            response=log.response,
             flags=json.loads(log.flags) if log.flags else [],
+            signals=json.loads(log.signals) if getattr(log, 'signals', None) else None,
             confidence=log.confidence,
             decision=log.decision,
             action_taken=log.decision,
@@ -186,4 +189,38 @@ async def get_risk_logs(limit: int = 50, db: Session = Depends(get_db)):
         )
         for log in logs
     ]
+
+
+@router.get("/logs/{id}", response_model=RiskLogResponse)
+async def get_risk_log_detail(id: int, db: Session = Depends(get_db)):
+    log = get_risk_log_by_id(db=db, log_id=id)
+    if not log:
+        # Keep consistent with FastAPI default style
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Risk log not found")
+
+    try:
+        signals = json.loads(log.signals) if getattr(log, 'signals', None) else None
+    except Exception:
+        signals = log.signals
+
+    try:
+        flags = json.loads(log.flags) if log.flags else []
+    except Exception:
+        flags = []
+
+    return RiskLogResponse(
+        id=log.id,
+        created_at=log.created_at,
+        final_risk_score=log.final_risk_score,
+        prompt=log.prompt,
+        response=log.response,
+        flags=flags,
+        signals=signals,
+        confidence=log.confidence,
+        decision=log.decision,
+        action_taken=log.decision,
+        decision_reason=log.decision_reason,
+    )
 

@@ -46,3 +46,8 @@ def get_recent_risk_logs(db: Session, limit: int = 50):
         .limit(limit)
         .all()
     )
+
+
+def get_risk_log_by_id(db: Session, log_id: int) -> Optional[RiskLog]:
+    """Fetch a single risk log by ID."""
+    return db.query(RiskLog).filter(RiskLog.id == log_id).first()

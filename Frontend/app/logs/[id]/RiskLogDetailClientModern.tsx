@@ -1,12 +1,13 @@
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Separator } from '@/components/ui/separator'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, Shield } from 'lucide-react'
 
 interface RiskLogDetailClientModernProps {
   log: any
@@ -24,7 +25,11 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
     )
   }
 
+  const router = useRouter()
+  const [isExporting, setIsExporting] = useState(false)
+
   const handleExport = () => {
+    setIsExporting(true)
     try {
       const payload = {
         id: logId,
@@ -42,6 +47,8 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
       URL.revokeObjectURL(url)
     } catch {
       // no-op
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -53,26 +60,83 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
   const decisionReason = log?.decision_reason || 'No reason provided'
   const createdAt = log?.created_at ? new Date(log.created_at) : new Date()
 
+  const renderSignals = () => {
+    const raw = log?.signals
+    if (!raw || (Array.isArray(raw) && raw.length === 0)) {
+      return (
+        <div className="text-center py-6 text-muted-foreground">
+          <Shield className="mx-auto h-12 w-12 opacity-20 mb-2" />
+          <p>No signals available</p>
+        </div>
+      )
+    }
+
+    // If it's an array, render as a simple list
+    if (Array.isArray(raw)) {
+      return (
+        <div className="space-y-2">
+          {raw.map((signal, i) => (
+            <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-sm text-foreground">{String(signal)}</span>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // If it's an object/dict, render as sections
+    if (typeof raw === 'object' && raw !== null) {
+      return (
+        <div className="space-y-4">
+          {Object.entries(raw).map(([key, value]) => (
+            <div key={key} className="space-y-2">
+              <h4 className="text-sm font-medium text-foreground capitalize">{key}</h4>
+              <div className="p-3 rounded-md bg-muted/30 text-sm font-mono text-foreground">
+                {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // Fallback: render as string
+    return (
+      <div className="p-3 rounded-md bg-muted/30 text-sm font-mono text-foreground">
+        {String(raw)}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Risk Log Details</h1>
-          <p className="text-muted-foreground">Log ID: #{logId}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/logs')} aria-label="Back to Risk Logs">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Back to Risk Logs</TooltipContent>
+          </Tooltip>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Risk Log Details</h1>
+            <p className="text-muted-foreground">ID: {log.id}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            <Link href="/logs">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Logs
-            </Link>
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} aria-label="Export log">
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? 'Exporting...' : 'Export'}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Export log as JSON</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Main Content Grid */}
@@ -87,7 +151,7 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
                 <div className="flex items-center space-x-2">
                   <Badge
                     variant={riskScore >= 0.8 ? 'destructive' : riskScore >= 0.6 ? 'default' : 'secondary'}
-                    className="text-lg font-mono px-3 py-1"
+                    className="text-lg"
                   >
                     {riskScore.toFixed(2)}
                   </Badge>
@@ -96,9 +160,7 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
                   </span>
                 </div>
               </div>
-              
               <Separator />
-              
               <div>
                 <p className="text-sm text-muted-foreground">Decision</p>
                 <Badge
@@ -113,7 +175,6 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
                   {decision}
                 </Badge>
               </div>
-              
               <div>
                 <p className="text-sm text-muted-foreground">Action Taken</p>
                 <Badge
@@ -128,7 +189,6 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
                   {actionTaken}
                 </Badge>
               </div>
-              
               <div>
                 <p className="text-sm text-muted-foreground">Confidence</p>
                 <div className="mt-1">
@@ -213,30 +273,7 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
 
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Signals Breakdown</h3>
-        {log?.signals && typeof log.signals === 'object' ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Signal</TableHead>
-                <TableHead>Value</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(log.signals as Record<string, unknown>).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell className="font-medium">{key}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
-                      ? String(value)
-                      : JSON.stringify(value)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-sm text-muted-foreground">No signals breakdown available for this log.</p>
-        )}
+        {renderSignals()}
       </Card>
 
       {/* Additional Details Section */}
@@ -274,6 +311,7 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
           </div>
         </div>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }

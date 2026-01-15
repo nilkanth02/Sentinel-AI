@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -19,9 +19,21 @@ interface AppLayoutProps {
 }
 
 export function AppLayoutModern({ children }: AppLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const pathname = usePathname()
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const apply = () => {
+      setIsDesktop(mq.matches)
+      setSidebarOpen(mq.matches)
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
 
   const topNavItems = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -137,7 +149,7 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
 
       <div className="flex">
         {/* Mobile backdrop */}
-        {sidebarOpen && (
+        {sidebarOpen && !isDesktop && (
           <button
             type="button"
             aria-label="Close sidebar"

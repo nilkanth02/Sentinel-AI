@@ -8,25 +8,19 @@ export function useRiskLogSimple(logId: string | number | undefined) {
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const isDev = process.env.NODE_ENV === 'development'
 
   useEffect(() => {
-    if (isDev) console.log('useRiskLogSimple useEffect called with logId:', logId)
-    
     if (!logId) {
-      if (isDev) console.log('No logId provided')
       return
     }
 
     const fetchData = async () => {
-      if (isDev) console.log('Starting fetch for log ID:', logId)
       setIsLoading(true)
       setIsError(false)
       setError(null)
       
       try {
         const response = await fetch(`/api/logs/${logId}`, { cache: 'no-store' })
-        if (isDev) console.log('Fetch response status:', response.status)
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -36,10 +30,8 @@ export function useRiskLogSimple(logId: string | number | undefined) {
         }
         
         const result = await response.json()
-        if (isDev) console.log('Fetch result:', result)
         setData(result)
       } catch (err) {
-        console.error('Fetch error:', err)
         setError(err instanceof Error ? err : new Error('Unknown error'))
         setIsError(true)
       } finally {
@@ -48,7 +40,7 @@ export function useRiskLogSimple(logId: string | number | undefined) {
     }
 
     fetchData()
-  }, [isDev, logId])
+  }, [logId])
 
   return { data, isLoading, isError, error }
 }
