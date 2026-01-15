@@ -139,6 +139,8 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="lg:hidden"
             aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -159,10 +161,13 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
         )}
 
         {/* Modern Sidebar */}
-        <aside className={cn(
+        <aside
+          id="app-sidebar"
+          className={cn(
           "fixed left-0 top-16 bottom-0 z-40 w-64 transform transition-transform duration-200 ease-in-out",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}>
+          )}
+        >
           <SidebarModern isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         </aside>
 
@@ -173,7 +178,7 @@ export function AppLayoutModern({ children }: AppLayoutProps) {
         )}>
           <PageTransition>
             <div className="min-h-[calc(100vh-4rem)] bg-muted/20">
-              <div className="container mx-auto p-6">
+              <div className="container mx-auto p-4 sm:p-6">
                 {children}
               </div>
             </div>

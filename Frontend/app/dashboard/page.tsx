@@ -3,7 +3,8 @@
 import { AppLayoutModern } from '../components/layout/AppLayoutModern'
 import Link from 'next/link'
 import { AnimatedCard, Badge, Button, Skeleton } from '@/components/ui'
-import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, TrendingUp } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, TrendingUp, ArrowRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useRiskLogs } from '@/hooks/useRiskLogs'
 import { 
@@ -98,16 +99,114 @@ export default function DashboardPageModern() {
     }
   }, [logs])
 
+  const status = useMemo(() => {
+    // Design intent: communicate "Is my AI safe right now?" in one glance.
+    if (kpis.criticalAlerts > 0 || kpis.avgRisk >= 0.7) {
+      return {
+        label: 'Needs attention',
+        description: 'High-risk events detected. Review critical alerts and recent activity.',
+        badgeVariant: 'destructive' as const,
+      }
+    }
+
+    if (kpis.avgRisk >= 0.4) {
+      return {
+        label: 'Monitor closely',
+        description: 'Risk levels are elevated. Investigate common flags and trend direction.',
+        badgeVariant: 'secondary' as const,
+      }
+    }
+
+    return {
+      label: 'Stable',
+      description: 'No critical alerts detected. Continue monitoring for drift and anomalies.',
+      badgeVariant: 'outline' as const,
+    }
+  }, [kpis.avgRisk, kpis.criticalAlerts])
+
+  const kpiCards = useMemo(
+    () => [
+      {
+        key: 'total',
+        title: 'Total observations',
+        value: isLoading ? null : kpis.totalEvents,
+        helper: 'Captured AI decisions analyzed in the current window (up to 7 days).',
+        icon: ShieldAlert,
+        accentClass:
+          'from-foreground/5 via-transparent to-transparent',
+        iconClass: 'bg-muted text-foreground',
+      },
+      {
+        key: 'critical',
+        title: 'Critical alerts',
+        value: isLoading ? null : kpis.criticalAlerts,
+        helper: 'Events with risk score ≥ 0.80 requiring immediate review.',
+        icon: AlertTriangle,
+        accentClass: 'from-destructive/10 via-transparent to-transparent',
+        iconClass: 'bg-destructive/10 text-destructive',
+      },
+      {
+        key: 'avg',
+        title: 'Average risk score',
+        value: isLoading ? null : kpis.avgRisk.toFixed(2),
+        helper: 'Mean risk across captured events. Use trends to spot drift.',
+        icon: Activity,
+        accentClass: 'from-primary/10 via-transparent to-transparent',
+        iconClass: 'bg-primary/10 text-primary',
+      },
+      {
+        key: 'today',
+        title: 'Events today',
+        value: isLoading ? null : kpis.eventsToday,
+        helper: 'Volume of decisions observed today (local time).',
+        icon: CheckCircle2,
+        accentClass: 'from-emerald-500/10 via-transparent to-transparent',
+        iconClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      },
+    ],
+    [isLoading, kpis.avgRisk, kpis.criticalAlerts, kpis.eventsToday, kpis.totalEvents]
+  )
+
+  const recentHighRisk = useMemo(() => {
+    const safe = Array.isArray(recentLogs) ? recentLogs : []
+    const high = safe.filter((l: any) => typeof l?._risk === 'number' && l._risk >= 0.7)
+    return (high.length ? high : safe).slice(0, 6)
+  }, [recentLogs])
+
   return (
     <AppLayoutModern>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">Monitor AI safety and compliance metrics</p>
+      <div className="space-y-8">
+        {/* Design intent: give immediate context + confidence without feeling like marketing copy. */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+          className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+        >
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">AI Risk Overview</h1>
+              <Badge variant={status.badgeVariant}>{status.label}</Badge>
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              SentinelAI continuously captures and scores AI decisions in production so engineering teams can audit safety,
+              explain outcomes, and investigate risk quickly.
+            </p>
+            <p className="text-xs text-muted-foreground">{status.description}</p>
           </div>
-        </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="default">
+              <Link href="/logs">
+                Investigate logs
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/baselines">Review baselines</Link>
+            </Button>
+          </div>
+        </motion.div>
 
         {isError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
@@ -115,130 +214,100 @@ export default function DashboardPageModern() {
           </div>
         )}
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <AnimatedCard delay={0} className="p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-transparent" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Risks</p>
-                {isLoading ? (
-                  <Skeleton className="mt-2 h-7 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{kpis.totalEvents}</p>
-                )}
-                <p className="text-xs text-muted-foreground">+12% from last week</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
-                <ShieldAlert className="h-5 w-5" />
-              </div>
-            </div>
-          </AnimatedCard>
+        {/* Design intent: KPIs should feel authoritative (value + meaning), not decorative. */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {kpiCards.map((card, index) => {
+            const Icon = card.icon
+            return (
+              <AnimatedCard
+                key={card.key}
+                delay={index * 0.06}
+                className="relative overflow-hidden p-6"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.accentClass}`} />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-muted-foreground">{card.title}</div>
+                    {card.value === null ? (
+                      <Skeleton className="mt-2 h-7 w-16" />
+                    ) : (
+                      <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{card.value}</div>
+                    )}
+                    <div className="mt-2 text-xs leading-relaxed text-muted-foreground">{card.helper}</div>
+                  </div>
 
-          <AnimatedCard delay={0.1} className="p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Critical Alerts</p>
-                {isLoading ? (
-                  <Skeleton className="mt-2 h-7 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{kpis.criticalAlerts}</p>
-                )}
-                <p className="text-xs text-muted-foreground">-5% from last week</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-            </div>
-          </AnimatedCard>
-
-          <AnimatedCard delay={0.2} className="p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-transparent" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Risk Score</p>
-                {isLoading ? (
-                  <Skeleton className="mt-2 h-7 w-14" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{kpis.avgRisk.toFixed(2)}</p>
-                )}
-                <p className="text-xs text-muted-foreground">-0.08 from last week</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-300 flex items-center justify-center">
-                <Activity className="h-5 w-5" />
-              </div>
-            </div>
-          </AnimatedCard>
-
-          <AnimatedCard delay={0.3} className="p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Events Today</p>
-                {isLoading ? (
-                  <Skeleton className="mt-2 h-7 w-14" />
-                ) : (
-                  <p className="text-2xl font-bold text-foreground">{kpis.eventsToday}</p>
-                )}
-                <p className="text-xs text-muted-foreground">+23% from yesterday</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-            </div>
-          </AnimatedCard>
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconClass}`}
+                    aria-hidden="true"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </AnimatedCard>
+            )
+          })}
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Risk Trend Chart */}
-          <AnimatedCard delay={0.4} className="p-6">
+          <AnimatedCard delay={0.32} className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Risk Score Trend</h3>
-                <p className="text-xs text-muted-foreground">Daily average risk score</p>
+                {/* Design intent: explain the chart in one sentence so it "reads" like a report. */}
+                <h3 className="text-lg font-semibold text-foreground">Risk score trend</h3>
+                <p className="text-xs text-muted-foreground">Daily average risk score (higher means more escalation)</p>
               </div>
               <Badge variant="secondary" className="font-mono">7d</Badge>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  stroke="#888888"
-                />
-                <Tooltip 
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-popover p-2 rounded shadow-lg border">
-                          <p className="font-semibold">{`${label}: ${(payload[0] as any).value}`}</p>
-                          <p className="text-sm text-muted-foreground">{`${(payload[0] as any).payload?.logs || 0} events`}</p>
-                        </div>
-                      )
-                    }
-                    return null
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="riskScore" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.38, ease: 'easeOut' }}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    stroke="#888888"
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const v = (payload[0] as any).value
+                        return (
+                          <div className="rounded-md border bg-popover p-2 shadow-lg">
+                            <p className="text-sm font-medium text-foreground">{label}</p>
+                            <p className="text-xs text-muted-foreground">Avg risk: {Number(v).toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Events: {(payload[0] as any).payload?.logs || 0}
+                            </p>
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="riskScore"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </motion.div>
           </AnimatedCard>
 
           {/* Flag Frequency Chart */}
-          <AnimatedCard delay={0.5} className="p-6">
+          <AnimatedCard delay={0.38} className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Flag Frequency</h3>
-                <p className="text-xs text-muted-foreground">Most common flags in the last week</p>
+                <h3 className="text-lg font-semibold text-foreground">Top risk signals</h3>
+                <p className="text-xs text-muted-foreground">Most common flags observed across recent events</p>
               </div>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -251,7 +320,10 @@ export default function DashboardPageModern() {
                 </div>
               ) : topFlags.length > 0 ? (
                 topFlags.map((flag) => (
-                  <div key={flag.flag} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={flag.flag}
+                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
+                  >
                     <div className="flex items-center space-x-3">
                       <div className="w-4 h-4 rounded-full bg-primary/60" />
                       <span className="text-sm font-medium text-foreground">{flag.flag}</span>
@@ -268,52 +340,79 @@ export default function DashboardPageModern() {
           </AnimatedCard>
         </div>
 
-        {/* Recent Logs Table */}
-        <AnimatedCard delay={0.6} className="p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Recent Risk Events</h3>
+        {/* Design intent: this section answers "Where should I investigate?" */}
+        <AnimatedCard delay={0.44} className="p-6">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Recent high-risk activity</h3>
+              <p className="text-xs text-muted-foreground">
+                Prioritized events to review. Click a row to open the full investigation report.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/logs">View all logs</Link>
+            </Button>
+          </div>
+
           <div className="space-y-2">
             {isLoading ? (
               <div className="space-y-3">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
               </div>
-            ) : recentLogs.length > 0 ? (
-              recentLogs.map((log: any) => {
+            ) : recentHighRisk.length > 0 ? (
+              recentHighRisk.map((log: any) => {
                 const id = log?.id
                 const risk = typeof log?._risk === 'number' ? log._risk : 0
-                const decision = log?.decision || 'unknown'
+                const decision = String(log?.decision || 'unknown')
                 const flags = Array.isArray(log?._flags) ? log._flags : []
                 const created = log?._created instanceof Date ? log._created : null
+
+                const riskVariant =
+                  risk >= 0.8 ? 'destructive' : risk >= 0.6 ? 'default' : risk >= 0.4 ? 'secondary' : 'outline'
+
                 return (
-                  <div key={String(id)} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
-                        {id}
+                  <Link
+                    key={String(id)}
+                    href={`/logs/${id}`}
+                    className="group flex items-center justify-between gap-4 rounded-lg border bg-card/50 p-4 transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={riskVariant} className="font-mono">
+                          {risk.toFixed(2)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {decision}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">Event #{String(id)}</span>
                       </div>
-                      <div className="flex-1">
-                        <div className="text-sm text-muted-foreground">
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="text-xs text-muted-foreground">
                           {created ? created.toLocaleString() : '—'}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant={risk >= 0.7 ? 'destructive' : risk >= 0.4 ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {decision}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{flags.join(', ')}</span>
-                        </div>
+                        </span>
+                        {flags.length > 0 && (
+                          <span className="truncate text-xs text-muted-foreground">{flags.slice(0, 3).join(' • ')}</span>
+                        )}
+                        {flags.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{flags.length - 3} more</span>
+                        )}
                       </div>
                     </div>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/logs/${id}`}>View</Link>
-                    </Button>
-                  </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
+                      <span className="hidden sm:inline">Investigate</span>
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </div>
+                  </Link>
                 )
               })
             ) : (
-              <p className="text-sm text-muted-foreground">No events yet.</p>
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                No events captured yet. Once AI systems are connected, SentinelAI will automatically log decisions here.
+              </div>
             )}
           </div>
         </AnimatedCard>

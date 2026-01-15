@@ -1,8 +1,12 @@
 'use client'
 
-import { Box, BoxProps, Heading, HeadingProps, Text, TextProps, HStack } from '@chakra-ui/react'
+import * as React from 'react'
 
-interface KpiCardProps extends BoxProps {
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+
+interface KpiCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string
   value: string | number
   change?: number
@@ -10,46 +14,46 @@ interface KpiCardProps extends BoxProps {
   icon?: React.ReactNode
 }
 
-export function KpiCard({ title, value, change, changeType = 'neutral', icon, ...props }: KpiCardProps) {
-  const changeColor = changeType === 'increase' ? 'risk.low' :
-                     changeType === 'decrease' ? 'risk.high' :
-                     'gray.500'
+export function KpiCard({ title, value, change, changeType = 'neutral', icon, className, ...props }: KpiCardProps) {
+  const hasChange = typeof change === 'number' && Number.isFinite(change)
+  const changeSymbol = hasChange && change > 0 ? '↑' : hasChange && change < 0 ? '↓' : ''
 
-  const changeSymbol = change && change > 0 ? '↑' :
-                      change && change < 0 ? '↓' : ''
+  const changeBadgeVariant =
+    changeType === 'neutral' ? 'outline' : changeType === 'decrease' ? 'destructive' : 'secondary'
+
+  const changeTextClassName =
+    changeType === 'increase'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : changeType === 'decrease'
+        ? 'text-destructive'
+        : 'text-muted-foreground'
 
   return (
-    <Box
-      bg="white"
-      borderRadius="lg"
-      boxShadow="md"
-      border="1px"
-      borderColor="gray.200"
-      p={6}
+    <Card
       {...props}
+      className={cn('p-6', className)}
     >
-      <HStack justify="space-between" align="flex-start" mb={4}>
-        <Box>
-          <Text color="gray.600" fontSize="sm" fontWeight="medium">
-            {title}
-          </Text>
-          {icon && (
-            <Box ml={2} display="inline">
-              {icon}
-            </Box>
-          )}
-        </Box>
-        <HStack align="center" spacing={2}>
-          <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-            {value}
-          </Text>
-          {change !== undefined && (
-            <Text fontSize="sm" color={changeColor} fontWeight="medium">
-              {changeSymbol}{Math.abs(change)}%
-            </Text>
-          )}
-        </HStack>
-      </HStack>
-    </Box>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="truncate text-sm font-medium text-muted-foreground">{title}</div>
+            {icon && <div className="shrink-0 text-muted-foreground">{icon}</div>}
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <div className="text-2xl font-semibold tracking-tight text-foreground">{value}</div>
+            {hasChange && (
+              <Badge
+                variant={changeBadgeVariant}
+                className={cn('font-mono text-xs', changeTextClassName)}
+                aria-label={`Change ${changeSymbol}${Math.abs(change).toFixed(0)} percent`}
+              >
+                {changeSymbol}
+                {Math.abs(change).toFixed(0)}%
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }

@@ -69,7 +69,7 @@ export function SidebarModern({ isOpen = true, onClose }: SidebarProps) {
                     href={item.href}
                     onClick={() => onClose?.()}
                     aria-current={isActive ? 'page' : undefined}
-                    className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+                    className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <Icon className={cn(
                       "mr-2 h-4 w-4",
