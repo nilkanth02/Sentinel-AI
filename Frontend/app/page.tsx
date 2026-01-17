@@ -5,6 +5,24 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { motion } from 'framer-motion'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useState, useEffect, useRef } from 'react'
+import { useCursorInteractions } from '@/hooks/useCursorInteractions'
+import { Menu, X } from 'lucide-react'
+import { 
+  fadeIn, 
+  slideUp, 
+  slideDown, 
+  scaleIn, 
+  staggerContainer, 
+  hoverScaleLift, 
+  hoverGlow,
+  MotionCard,
+  GlassCard,
+  AnimatedGradient,
+  buttonPress
+} from '@/components/ui/motion'
 import {
   ArrowRight,
   BarChart3,
@@ -13,115 +31,315 @@ import {
   Shield,
   ShieldCheck,
   Waypoints,
+  AlertTriangle,
+  Activity,
+  Zap,
+  Lock,
+  Eye,
+  TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function LandingPage() {
-  const sectionFade = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0 },
-  }
+// Register GSAP plugins
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
 
-  const stagger = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  }
+export default function LandingPage() {
+  const { registerInteractiveElement } = useCursorInteractions()
+  const sectionFade = slideUp
+  const stagger = staggerContainer
+  const heroRef = useRef<HTMLElement>(null)
+  const headlineRef = useRef<HTMLElement>(null)
+  const subtextRef = useRef<HTMLElement>(null)
+  const ctaRef = useRef<HTMLElement>(null)
+  const glowRef = useRef<HTMLElement>(null)
+  const workflowRef = useRef<HTMLElement>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    // GSAP Hero Animation - Controlled animations only
+    if (heroRef.current && headlineRef.current && subtextRef.current && ctaRef.current) {
+      // Headline text reveal - controlled, no infinite loops
+      const headlineText = "AI systems fail silently."
+      gsap.set(headlineRef.current, { opacity: 0 })
+      gsap.to(headlineRef.current, {
+        opacity: 1,
+        duration: 1.5,
+        ease: "power2.out",
+        delay: 0.5
+      })
+
+      // Subtext fade in
+      gsap.fromTo(subtextRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 1, delay: 1.2 }
+      )
+
+      // CTA slide up
+      gsap.fromTo(ctaRef.current,
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 1, delay: 1.8 }
+      )
+    }
+
+    // GSAP ScrollTrigger for workflow animation - user-triggered
+    if (workflowRef.current) {
+      const workflowItems = workflowRef.current.querySelectorAll('.workflow-item')
+      
+      gsap.timeline({
+        scrollTrigger: {
+          trigger: workflowRef.current,
+          start: 'top center',
+          end: 'bottom center',
+          scrub: 1
+        }
+      })
+      .fromTo(workflowItems, 
+        { opacity: 0, y: 50, scale: 0.9 },
+        { opacity: 1, y: 0, scale: 1, stagger: 0.3 }
+      )
+    }
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+    }
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+    <div className="min-h-screen bg-gradient-navy scroll-smooth">
+      {/* Premium animated background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <AnimatedGradient className="absolute inset-0 opacity-30" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
+      </div>
+      
       {/* Design intent: the landing should feel like an engineering console entry point, not a consumer marketing page. */}
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-[backdrop-filter:blur(0.75px)]">
+      <header className="sticky top-0 z-30 border-b border-white/6 glass-effect-dark">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center gap-2"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-electric-blue to-electric-violet glow-effect">
+              <Shield className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-foreground">SentinelAI</div>
-              <div className="text-xs text-muted-foreground">AI Safety Console</div>
+              <div className="text-sm font-semibold text-white">SentinelAI</div>
+              <div className="text-xs text-muted">AI Safety Console</div>
             </div>
-          </div>
+          </motion.div>
 
-          <nav className="hidden items-center gap-6 md:flex" aria-label="Landing page">
-            <Link href="#how" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              How it works
-            </Link>
-            <Link href="#capabilities" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Capabilities
-            </Link>
-            <Link href="#preview" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Product preview
-            </Link>
-            <Link href="#trust" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Why SentinelAI
-            </Link>
-          </nav>
+          {/* Desktop Navigation */}
+          <motion.nav 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="hidden items-center gap-8 md:flex" 
+            aria-label="Landing page"
+          >
+            {['How it works', 'Capabilities', 'Product preview', 'Why SentinelAI'].map((item, index) => (
+              <Link
+                key={item}
+                href={`#${item.toLowerCase().replace(' ', '')}`}
+                className="text-sm font-medium text-muted hover:text-white transition-colors"
+              >
+                {item}
+              </Link>
+            ))}
+          </motion.nav>
 
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="hidden sm:inline-flex">
+          {/* Desktop CTAs */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="hidden items-center gap-3 md:flex"
+          >
+            <Button 
+              asChild 
+              variant="outline" 
+              className="border-white/10 bg-black/20 text-muted hover:bg-white/10 hover:text-white glass-effect-dark"
+            >
               <Link href="/logs">View risk logs</Link>
             </Button>
-            <Button asChild>
+            <Button 
+              asChild 
+              className="bg-gradient-to-r from-electric-blue to-electric-violet hover:from-electric-blue/90 hover:to-electric-violet/90 text-white border-0 shadow-glow"
+              {...hoverGlow}
+            >
               <Link href="/dashboard">
                 Open console
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
-          </div>
+          </motion.div>
+
+          {/* Mobile Menu Button */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="md:hidden"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-muted hover:text-white"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </motion.div>
         </div>
+
+        {/* Mobile Menu */}
+        <motion.div 
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ 
+            height: mobileMenuOpen ? 'auto' : 0, 
+            opacity: mobileMenuOpen ? 1 : 0 
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="md:hidden overflow-hidden border-t border-white/6"
+        >
+          <div className="container mx-auto px-4 py-4 space-y-4">
+            {['How it works', 'Capabilities', 'Product preview', 'Why SentinelAI'].map((item, index) => (
+              <Link
+                key={item}
+                href={`#${item.toLowerCase().replace(' ', '')}`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm font-medium text-muted hover:text-white transition-colors py-2"
+              >
+                {item}
+              </Link>
+            ))}
+            <div className="pt-4 space-y-3 border-t border-white/10">
+              <Button 
+                asChild 
+                variant="outline" 
+                className="w-full border-white/10 bg-black/20 text-muted hover:bg-white/10 hover:text-white glass-effect-dark"
+              >
+                <Link href="/logs" onClick={() => setMobileMenuOpen(false)}>View risk logs</Link>
+              </Button>
+              <Button 
+                asChild 
+                className="w-full bg-gradient-to-r from-electric-blue to-electric-violet hover:from-electric-blue/90 hover:to-electric-violet/90 text-white border-0 shadow-glow"
+                {...hoverGlow}
+              >
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  Open console
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </motion.div>
       </header>
 
-      {/* Hero */}
-      <section className="relative px-4 pb-14 pt-14 sm:pb-20 sm:pt-20">
-        <div className="container mx-auto">
+      {/* Hero Section */}
+      <section ref={heroRef} className="relative px-4 pb-14 pt-14 sm:pb-20 sm:pt-20 max-w-7xl mx-auto">
+        {/* Static background glow - no animation */}
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, rgba(79, 139, 255, 0.1) 0%, transparent 70%)'
+          }}
+        />
+        
+        <div className="relative z-10">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={stagger}
-              className="space-y-5 lg:col-span-6"
+              className="space-y-8 lg:col-span-6"
             >
-              <motion.div variants={sectionFade}>
-                <Badge variant="secondary" className="font-mono">
-                  Production AI risk monitoring
+              <motion.div variants={scaleIn} className="mb-8">
+                <Badge className="badge-risk font-mono">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Production Risk Detected
                 </Badge>
               </motion.div>
-              <motion.h1 variants={sectionFade} className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                Understand and control AI risk in production.
+              
+              <motion.h1 
+                ref={headlineRef}
+                variants={slideUp} 
+                className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl"
+              >
+                <span className="text-gradient">AI systems fail</span>{' '}
+                <span className="text-gradient-secondary">silently.</span>
               </motion.h1>
-              <motion.p variants={sectionFade} className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                SentinelAI observes AI interactions, scores risk, and produces investigation-ready logs so engineering teams can
-                audit decisions, explain outcomes, and respond quickly.
+              
+              <motion.p 
+                ref={subtextRef}
+                variants={slideUp} 
+                className="max-w-lg text-base leading-relaxed text-muted sm:text-lg lg:text-xl"
+              >
+                SentinelAI makes AI risk visible, controllable, and explainable before it becomes a production incident.
               </motion.p>
-              <motion.div variants={sectionFade} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Button size="lg" asChild>
-                  <Link href="/dashboard">
-                    Enter the console
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="#preview">See a preview</Link>
-                </Button>
+              
+              <motion.div 
+                ref={ctaRef}
+                variants={slideUp} 
+                className="flex flex-col gap-4 sm:flex-row sm:items-center"
+              >
+                <motion.div {...buttonPress}>
+                  <Button 
+                    size="lg" 
+                    className="group relative overflow-hidden bg-gradient-to-r from-electric-blue to-electric-violet hover:from-electric-blue/90 hover:to-electric-violet/90 text-white border-0 px-6 py-3 text-base shadow-glow"
+                    asChild
+                  >
+                    <Link href="/dashboard">
+                      <span className="relative z-10 flex items-center">
+                        Enter Command Center
+                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </span>
+                      <motion.div
+                        initial={{ x: "-100%" }}
+                        whileHover={{ x: "100%" }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      />
+                    </Link>
+                  </Button>
+                </motion.div>
+                
+                <motion.div {...buttonPress}>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="border-white/10 bg-black/20 text-muted hover:bg-white/10 hover:text-white px-6 py-3 text-base"
+                    asChild
+                  >
+                    <Link href="#howitworks">
+                      See How It Works
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </motion.div>
               </motion.div>
 
-              <motion.div variants={sectionFade} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-lg border bg-card/40 p-3">
-                  <div className="text-xs font-medium text-muted-foreground">Outcome</div>
-                  <div className="mt-1 text-sm font-medium text-foreground">Actionable investigations</div>
-                </div>
-                <div className="rounded-lg border bg-card/40 p-3">
-                  <div className="text-xs font-medium text-muted-foreground">Workflow</div>
-                  <div className="mt-1 text-sm font-medium text-foreground">Logs → signals → reason</div>
-                </div>
-                <div className="rounded-lg border bg-card/40 p-3">
-                  <div className="text-xs font-medium text-muted-foreground">Trust</div>
-                  <div className="mt-1 text-sm font-medium text-foreground">Explainable decisions</div>
-                </div>
+              <motion.div variants={stagger} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { icon: Eye, title: 'Real-time Monitoring', desc: 'Continuous AI observation' },
+                  { icon: TrendingUp, title: 'Risk Intelligence', desc: 'Smart threat detection' },
+                  { icon: ShieldCheck, title: 'Audit Ready', desc: 'Compliance reports' }
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.title}
+                    variants={scaleIn}
+                    className="text-center"
+                  >
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-electric-blue/20 to-electric-violet/20 border border-electric-blue/30">
+                      <item.icon className="h-6 w-6 text-electric-blue" />
+                    </div>
+                    <div className="text-sm font-semibold text-white">{item.title}</div>
+                    <div className="text-xs text-muted">{item.desc}</div>
+                  </motion.div>
+                ))}
               </motion.div>
             </motion.div>
 
@@ -130,57 +348,59 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.12, ease: 'easeOut' }}
-              className="lg:col-span-6"
+              className="lg:col-span-6 order-first lg:order-last"
             >
-              <Card className="overflow-hidden">
-                <div className="border-b bg-muted/20 px-5 py-4">
-                  <div className="flex items-center justify-between gap-4">
+              <GlassCard className="overflow-hidden border-white/10">
+                <div className="border-b border-white/10 bg-black/20 px-4 py-3 sm:px-5 sm:py-4">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-foreground">Investigation snapshot</div>
-                      <div className="text-xs text-muted-foreground">One decision, fully traceable.</div>
+                      <div className="text-sm font-semibold text-white">Investigation snapshot</div>
+                      <div className="text-xs text-muted">One decision, fully traceable.</div>
                     </div>
-                    <Badge variant="outline" className="font-mono">risk 0.82</Badge>
+                    <Badge className="badge-risk font-mono">
+                      risk 0.82
+                    </Badge>
                   </div>
                 </div>
-                <div className="space-y-4 p-5">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-lg border bg-card/40 p-3">
-                      <div className="text-xs text-muted-foreground">Decision</div>
-                      <div className="mt-1 text-sm font-medium text-foreground">block</div>
+                <div className="space-y-3 sm:space-y-4 p-4 sm:p-5">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-2 sm:p-3">
+                      <div className="text-xs text-muted">Decision</div>
+                      <div className="mt-1 text-sm font-medium text-risk-high">block</div>
                     </div>
-                    <div className="rounded-lg border bg-card/40 p-3">
-                      <div className="text-xs text-muted-foreground">Confidence</div>
-                      <div className="mt-1 text-sm font-medium text-foreground">93%</div>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-2 sm:p-3">
+                      <div className="text-xs text-muted">Confidence</div>
+                      <div className="mt-1 text-sm font-medium text-white">93%</div>
                     </div>
-                    <div className="rounded-lg border bg-card/40 p-3">
-                      <div className="text-xs text-muted-foreground">Signals</div>
-                      <div className="mt-1 text-sm font-medium text-foreground">3</div>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-2 sm:p-3">
+                      <div className="text-xs text-muted">Signals</div>
+                      <div className="mt-1 text-sm font-medium text-white">3</div>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <div className="text-xs font-medium text-muted-foreground">Primary reason</div>
-                    <div className="mt-1 text-sm text-foreground">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+                    <div className="text-xs font-medium text-muted">Primary reason</div>
+                    <div className="mt-1 text-sm text-white leading-relaxed">
                       Detected high-risk content patterns and policy violations; action taken to prevent unsafe response.
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border bg-card/40 p-4">
-                      <div className="text-xs font-medium text-muted-foreground">Prompt</div>
-                      <div className="mt-2 h-2 w-11/12 rounded bg-muted" />
-                      <div className="mt-2 h-2 w-9/12 rounded bg-muted" />
-                      <div className="mt-2 h-2 w-10/12 rounded bg-muted" />
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+                      <div className="text-xs font-medium text-muted">Prompt</div>
+                      <div className="mt-2 h-2 w-11/12 rounded bg-white/10" />
+                      <div className="mt-2 h-2 w-9/12 rounded bg-white/10" />
+                      <div className="mt-2 h-2 w-10/12 rounded bg-white/10" />
                     </div>
-                    <div className="rounded-lg border bg-card/40 p-4">
-                      <div className="text-xs font-medium text-muted-foreground">Response</div>
-                      <div className="mt-2 h-2 w-10/12 rounded bg-muted" />
-                      <div className="mt-2 h-2 w-8/12 rounded bg-muted" />
-                      <div className="mt-2 h-2 w-11/12 rounded bg-muted" />
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+                      <div className="text-xs font-medium text-muted">Response</div>
+                      <div className="mt-2 h-2 w-10/12 rounded bg-white/10" />
+                      <div className="mt-2 h-2 w-8/12 rounded bg-white/10" />
+                      <div className="mt-2 h-2 w-11/12 rounded bg-white/10" />
                     </div>
                   </div>
                 </div>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
         </div>
@@ -189,7 +409,7 @@ export default function LandingPage() {
       <Separator />
 
       {/* How it works */}
-      <section id="how" className="px-4 py-16 sm:py-20">
+      <section id="howitworks" ref={workflowRef} className="px-4 py-16 sm:py-20">
         <div className="container mx-auto">
           <motion.div
             initial="hidden"
@@ -198,68 +418,61 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">How it works</h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              A simple pipeline: capture interactions, score risk, and surface investigation-ready insights.
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="text-gradient">How it works</span>
+            </h2>
+            <p className="mt-4 text-lg text-navy-300">
+              Three simple steps to AI safety and observability
             </p>
           </motion.div>
 
-          {/* Design intent: make the data flow obvious in one glance. */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.25 }}
-            variants={stagger}
-            className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-4 lg:grid-cols-3"
-          >
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Waypoints className="h-5 w-5 text-foreground" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">AI application</div>
-                    <div className="text-sm text-muted-foreground">
-                      Your agents, LLM gateway, or app runtime where prompts and responses occur.
+          {/* Simplified workflow cards - clear, instructional, one step per card */}
+          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
+            {[
+              {
+                step: '1',
+                icon: Waypoints,
+                title: 'Input',
+                description: 'AI applications send prompts and responses to SentinelAI for analysis.',
+                color: 'from-electric-teal to-primary'
+              },
+              {
+                step: '2',
+                icon: Shield,
+                title: 'Analysis',
+                description: 'SentinelAI evaluates risk, detects signals, and makes a decision with confidence.',
+                color: 'from-primary to-electric-violet'
+              },
+              {
+                step: '3',
+                icon: BarChart3,
+                title: 'Insight',
+                description: 'Get investigation-ready logs, explanations, and risk intelligence for your team.',
+                color: 'from-electric-violet to-electric-teal'
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={item.title}
+                className="workflow-item"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+              >
+                <MotionCard variants={sectionFade} className="h-full border-navy-700 hover:border-primary/30 transition-all duration-300">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} shadow-lg flex-shrink-0">
+                      <span className="text-2xl font-bold text-white">{item.step}</span>
+                    </div>
+                    <div className="space-y-3 flex-1">
+                      <div className="text-xl font-semibold text-white">{item.title}</div>
+                      <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
                     </div>
                   </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">SentinelAI</div>
-                    <div className="text-sm text-muted-foreground">
-                      Policy checks + risk scoring + signal extraction to explain why an action was taken.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <BarChart3 className="h-5 w-5 text-foreground" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Risk insights</div>
-                    <div className="text-sm text-muted-foreground">
-                      A console for triage, investigations, and audit exports—ready for production workflows.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </motion.div>
+                </MotionCard>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -275,8 +488,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Core capabilities</h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="text-gradient">Core capabilities</span>
+            </h2>
+            <p className="mt-4 text-lg text-navy-300">
               Built for engineering teams that need clarity, not hype.
             </p>
           </motion.div>
@@ -286,69 +501,54 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.25 }}
             variants={stagger}
-            className="mx-auto mt-10 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2"
+            className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2"
           >
-            <motion.div variants={sectionFade}>
-              <Card className="group p-6 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+            {[
+              {
+                icon: ShieldCheck,
+                title: 'Risk scoring & decisions',
+                description: 'Consistent risk scores with a clear decision output (allow / warn / escalate / block).',
+                gradient: 'from-primary to-electric-violet'
+              },
+              {
+                icon: FileText,
+                title: 'Investigation-ready logs',
+                description: 'Every event is a report: prompt, response, signals, confidence, and rationale.',
+                gradient: 'from-electric-teal to-primary'
+              },
+              {
+                icon: Filter,
+                title: 'Triage and filtering',
+                description: 'Find what matters: by risk, decision, flags, and time.',
+                gradient: 'from-electric-violet to-electric-teal'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Trends and baselines',
+                description: 'Watch risk drift over time and compare against the baseline you define.',
+                gradient: 'from-primary to-electric-teal'
+              }
+            ].map((item, index) => (
+              <MotionCard
+                key={item.title}
+                variants={sectionFade}
+                className="group border-navy-700 hover:border-primary/50 transition-all duration-300"
+                whileHover={{ 
+                  y: -4,
+                  boxShadow: '0 20px 40px rgba(76, 126, 243, 0.2)'
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg">
+                    <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Risk scoring & decisions</div>
-                    <div className="text-sm text-muted-foreground">
-                      Consistent risk scores with a clear decision output (allow / warn / escalate / block).
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="group p-6 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Investigation-ready logs</div>
-                    <div className="text-sm text-muted-foreground">
-                      Every event is a report: prompt, response, signals, confidence, and rationale.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="group p-6 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Filter className="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Triage and filtering</div>
-                    <div className="text-sm text-muted-foreground">Find what matters: by risk, decision, flags, and time.</div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="group p-6 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <BarChart3 className="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Trends and baselines</div>
-                    <div className="text-sm text-muted-foreground">
-                      Watch risk drift over time and compare against the baseline you define.
-                    </div>
+                  <div className="space-y-2">
+                    <div className="text-lg font-semibold text-white">{item.title}</div>
+                    <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
                   </div>
                 </div>
-              </Card>
-            </motion.div>
+              </MotionCard>
+            ))}
           </motion.div>
         </div>
       </section>
@@ -365,8 +565,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Product preview</h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="text-gradient">Product preview</span>
+            </h2>
+            <p className="mt-4 text-lg text-navy-300">
               A safety console built for investigation workflows.
             </p>
           </motion.div>
@@ -376,68 +578,71 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.25 }}
             variants={stagger}
-            className="mx-auto mt-10 grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-2"
+            className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-2"
           >
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start justify-between gap-4">
+            {/* Dashboard Preview */}
+            <MotionCard variants={sectionFade} className="border-navy-700 overflow-hidden">
+              <div className="border-b border-navy-700 bg-navy-800/50 px-5 py-4">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-semibold text-foreground">Dashboard</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Answer: “Is my AI system safe right now?”</div>
+                    <div className="text-lg font-semibold text-white">Dashboard</div>
+                    <div className="text-sm text-navy-400">Answer: "Is my AI system safe right now?"</div>
                   </div>
-                  <Badge variant="secondary" className="font-mono">overview</Badge>
+                  <Badge className="bg-gradient-to-r from-electric-teal to-primary border-0">overview</Badge>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <div className="text-xs text-muted-foreground">Critical alerts</div>
-                    <div className="mt-1 text-2xl font-semibold text-foreground">2</div>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-navy-700 bg-navy-800/30 p-4">
+                    <div className="text-xs text-navy-400">Critical alerts</div>
+                    <div className="mt-1 text-2xl font-semibold text-risk-high">2</div>
                   </div>
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <div className="text-xs text-muted-foreground">Avg risk</div>
-                    <div className="mt-1 text-2xl font-semibold text-foreground">0.46</div>
+                  <div className="rounded-lg border border-navy-700 bg-navy-800/30 p-4">
+                    <div className="text-xs text-navy-400">Avg risk</div>
+                    <div className="mt-1 text-2xl font-semibold text-risk-medium">0.46</div>
                   </div>
                 </div>
-                <div className="mt-4 rounded-lg border bg-card/40 p-4">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Risk score trend</span>
-                    <span className="font-mono">7d</span>
-                  </div>
-                  <div className="mt-3 h-16 rounded bg-muted" />
+                <div className="h-32 rounded-lg border border-navy-700 bg-navy-800/30 flex items-center justify-center">
+                  <div className="text-navy-400 text-sm">Real-time risk chart</div>
                 </div>
-              </Card>
-            </motion.div>
+              </div>
+            </MotionCard>
 
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start justify-between gap-4">
+            {/* Risk Logs Preview */}
+            <MotionCard variants={sectionFade} className="border-navy-700 overflow-hidden">
+              <div className="border-b border-navy-700 bg-navy-800/50 px-5 py-4">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-semibold text-foreground">Risk logs</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Answer: “What happened, and what do I do next?”</div>
+                    <div className="text-lg font-semibold text-white">Risk Logs</div>
+                    <div className="text-sm text-navy-400">Investigation-ready audit trail</div>
                   </div>
-                  <Badge variant="outline" className="font-mono">audit</Badge>
+                  <Badge className="bg-gradient-to-r from-primary to-electric-violet border-0">logs</Badge>
                 </div>
-
-                <div className="mt-5 space-y-2">
-                  {[
-                    { id: '8421', risk: '0.82', decision: 'block', flags: 'policy_violation • jailbreak' },
-                    { id: '8417', risk: '0.71', decision: 'escalate', flags: 'pii • exfiltration' },
-                    { id: '8413', risk: '0.44', decision: 'warn', flags: 'unverified_claims' },
-                  ].map((row) => (
-                    <div key={row.id} className="rounded-lg border bg-card/40 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <Badge variant="secondary" className="font-mono">{row.risk}</Badge>
-                          <Badge variant="outline" className="text-xs">{row.decision}</Badge>
-                          <span className="truncate text-xs text-muted-foreground">Event #{row.id}</span>
-                        </div>
-                        <span className="hidden text-xs text-muted-foreground sm:inline">Investigate</span>
+              </div>
+              <div className="p-5 space-y-3">
+                {[
+                  { risk: 0.82, decision: 'block', time: '2 min ago' },
+                  { risk: 0.45, decision: 'warn', time: '5 min ago' },
+                  { risk: 0.12, decision: 'allow', time: '8 min ago' }
+                ].map((log, index) => (
+                  <div key={index} className="flex items-center justify-between rounded-lg border border-navy-700 bg-navy-800/30 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-2 w-2 rounded-full ${
+                        log.decision === 'block' ? 'bg-risk-high' :
+                        log.decision === 'warn' ? 'bg-risk-medium' : 'bg-risk-low'
+                      }`} />
+                      <div>
+                        <div className="text-sm font-medium text-white">{log.decision}</div>
+                        <div className="text-xs text-navy-400">{log.time}</div>
                       </div>
-                      <div className="mt-2 truncate text-xs text-muted-foreground">{row.flags}</div>
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
+                    <Badge variant="outline" className="border-navy-600 text-navy-300">
+                      {log.risk}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </MotionCard>
           </motion.div>
         </div>
       </section>
@@ -445,7 +650,7 @@ export default function LandingPage() {
       <Separator />
 
       {/* Why SentinelAI */}
-      <section id="trust" className="px-4 py-16 sm:py-20">
+      <section id="whysentinelai" className="px-4 py-16 sm:py-20">
         <div className="container mx-auto">
           <motion.div
             initial="hidden"
@@ -454,8 +659,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Why SentinelAI</h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="text-gradient">Why SentinelAI</span>
+            </h2>
+            <p className="mt-4 text-lg text-navy-300 max-w-2xl mx-auto">
               Trust comes from clear evidence: what happened, what signals were detected, and why an action was taken.
             </p>
           </motion.div>
@@ -465,55 +672,48 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.25 }}
             variants={stagger}
-            className="mx-auto mt-10 grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-3"
+            className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3"
           >
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <FileText className="h-5 w-5 text-foreground" aria-hidden="true" />
+            {[
+              {
+                icon: FileText,
+                title: 'Explainability by default',
+                description: 'Decisions are paired with signals and plain-language rationale so teams can validate outcomes.',
+                gradient: 'from-primary to-electric-violet'
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Audit-ready exports',
+                description: 'Export individual events as structured JSON for incident reviews and compliance workflows.',
+                gradient: 'from-electric-teal to-primary'
+              },
+              {
+                icon: Shield,
+                title: 'Production workflow first',
+                description: 'Built for triage: filters, investigations, and prioritized lists of what to look at next.',
+                gradient: 'from-electric-violet to-electric-teal'
+              }
+            ].map((item, index) => (
+              <MotionCard
+                key={item.title}
+                variants={sectionFade}
+                className="border-navy-700 hover:border-primary/50 transition-all duration-300 p-6"
+                whileHover={{ 
+                  y: -4,
+                  boxShadow: '0 20px 40px rgba(76, 126, 243, 0.2)'
+                }}
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg flex-shrink-0">
+                    <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Explainability by default</div>
-                    <div className="text-sm text-muted-foreground">
-                      Decisions are paired with signals and plain-language rationale so teams can validate outcomes.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <ShieldCheck className="h-5 w-5 text-foreground" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Audit-ready exports</div>
-                    <div className="text-sm text-muted-foreground">
-                      Export individual events as structured JSON for incident reviews and compliance workflows.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={sectionFade}>
-              <Card className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Shield className="h-5 w-5 text-foreground" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold text-foreground">Production workflow first</div>
-                    <div className="text-sm text-muted-foreground">
-                      Built for triage: filters, investigations, and prioritized lists of what to look at next.
-                    </div>
+                  <div className="space-y-2">
+                    <div className="text-lg font-semibold text-white">{item.title}</div>
+                    <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
                   </div>
                 </div>
-              </Card>
-            </motion.div>
+              </MotionCard>
+            ))}
           </motion.div>
         </div>
       </section>
@@ -521,51 +721,78 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="px-4 pb-20 pt-6">
         <div className="container mx-auto">
-          <Card className="mx-auto max-w-3xl bg-gradient-to-r from-primary/10 to-primary/5 p-10 text-center">
-            {/* Design intent: calm invitation to use the product; no forced signup language. */}
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Explore SentinelAI</h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              Open the console to review recent risk events, investigate decisions, and export evidence.
+          <GlassCard className="mx-auto max-w-3xl bg-gradient-to-r from-primary/10 to-primary/5 p-10 text-center border-navy-700">
+            {/* Design intent: calm invitation to use product; no forced signup language. */}
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="text-gradient">Explore SentinelAI</span>
+            </h2>
+            <p className="mt-4 text-lg text-navy-300">
+              Open console to review recent risk events, investigate decisions, and export evidence.
             </p>
-            <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link href="/dashboard">
-                  Open console
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/logs">View logs</Link>
-              </Button>
+            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-primary to-electric-violet hover:from-primary/90 hover:to-electric-violet/90 text-white border-0 px-8 py-4 shadow-lg"
+                  asChild
+                  {...hoverGlow}
+                >
+                  <Link href="/dashboard">
+                    Open console
+                    <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-navy-600 bg-navy-900/50 text-navy-300 hover:bg-navy-800/50 hover:text-white px-8 py-4 glass-effect-dark"
+                  asChild
+                >
+                  <Link href="/logs">View logs</Link>
+                </Button>
+              </motion.div>
             </div>
-          </Card>
+          </GlassCard>
         </div>
       </section>
 
-      <footer className="border-t bg-muted/30">
+      <footer className="border-t border-navy-800 bg-navy-950">
         <div className="container mx-auto px-4 py-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
-              <span className="text-sm font-semibold text-foreground">SentinelAI</span>
-              <span className="text-xs text-muted-foreground">AI safety console</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-electric-violet">
+                <Shield className="h-4 w-4 text-white" aria-hidden="true" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-white">SentinelAI</span>
+                <span className="text-xs text-navy-400 ml-1">AI safety console</span>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <Link href="#how" className="text-muted-foreground hover:text-foreground">
-                How it works
-              </Link>
-              <Link href="#capabilities" className="text-muted-foreground hover:text-foreground">
-                Capabilities
-              </Link>
-              <Link href="#trust" className="text-muted-foreground hover:text-foreground">
-                Why SentinelAI
-              </Link>
-              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-                Open console
-              </Link>
+              {['How it works', 'Capabilities', 'Why SentinelAI', 'Open console'].map((item) => (
+                <Link
+                  key={item}
+                  href={item === 'Open console' ? '/dashboard' : `#${item.toLowerCase().replace(' ', '')}`}
+                  className="text-navy-400 hover:text-white transition-colors"
+                >
+                  {item}
+                </Link>
+              ))}
             </div>
           </div>
-          <div className="mt-8 border-t pt-6 text-xs text-muted-foreground">&copy; 2024 SentinelAI. All rights reserved.</div>
+          <div className="mt-8 border-t border-navy-800 pt-6 text-center">
+            <p className="text-xs text-navy-400">&copy; 2024 SentinelAI. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>

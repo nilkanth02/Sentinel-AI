@@ -12,9 +12,16 @@ export { PageTransition } from './page-transition'
 export { Skeleton } from './skeleton'
 export { SkeletonShimmer } from './skeleton-shimmer'
 export { ThemeToggle } from './theme-toggle'
-export { Tooltip } from './tooltip'
+export { 
+  Tooltip, 
+  TooltipTrigger, 
+  TooltipContent, 
+  TooltipProvider
+} from './tooltip'
 export { Separator } from './separator'
 export { Slider } from './slider'
+export { Switch } from './switch'
+export { Label } from './label'
 export { 
   Dialog,
   DialogTrigger,

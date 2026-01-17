@@ -2,11 +2,12 @@
 
 import { AppLayoutModern } from '../components/layout/AppLayoutModern'
 import Link from 'next/link'
-import { AnimatedCard, Badge, Button, Skeleton } from '@/components/ui'
+import { Badge, Button, Skeleton } from '@/components/ui'
 import { motion } from 'framer-motion'
 import { ShieldAlert, AlertTriangle, Activity, CheckCircle2, TrendingUp, ArrowRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useRiskLogs } from '@/hooks/useRiskLogs'
+import { useCursorInteractions } from '@/hooks/useCursorInteractions'
 import { 
   LineChart,
   Line,
@@ -15,8 +16,19 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { 
+  MotionCard, 
+  AnimatedCounter, 
+  staggerContainer,
+  slideUp,
+  hoverScaleLift,
+  hoverGlow,
+  riskLevelAnimations,
+  buttonPress
+} from '@/components/ui/motion'
 
 export default function DashboardPageModern() {
+  const { registerInteractiveElement } = useCursorInteractions()
   const {
     data: logs = [],
     isLoading,
@@ -175,247 +187,302 @@ export default function DashboardPageModern() {
 
   return (
     <AppLayoutModern>
-      <div className="space-y-8">
-        {/* Design intent: give immediate context + confidence without feeling like marketing copy. */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-        >
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">AI Risk Overview</h1>
-              <Badge variant={status.badgeVariant}>{status.label}</Badge>
-            </div>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              SentinelAI continuously captures and scores AI decisions in production so engineering teams can audit safety,
-              explain outcomes, and investigate risk quickly.
-            </p>
-            <p className="text-xs text-muted-foreground">{status.description}</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="default">
-              <Link href="/logs">
-                Investigate logs
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/baselines">Review baselines</Link>
-            </Button>
-          </div>
-        </motion.div>
-
-        {isError && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {error instanceof Error ? error.message : 'Failed to load dashboard data'}
-          </div>
-        )}
-
-        {/* Design intent: KPIs should feel authoritative (value + meaning), not decorative. */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {kpiCards.map((card, index) => {
-            const Icon = card.icon
-            return (
-              <AnimatedCard
-                key={card.key}
-                delay={index * 0.06}
-                className="relative overflow-hidden p-6"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${card.accentClass}`} />
-                <div className="relative flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-muted-foreground">{card.title}</div>
-                    {card.value === null ? (
-                      <Skeleton className="mt-2 h-7 w-16" />
-                    ) : (
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{card.value}</div>
-                    )}
-                    <div className="mt-2 text-xs leading-relaxed text-muted-foreground">{card.helper}</div>
-                  </div>
-
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.iconClass}`}
-                    aria-hidden="true"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </AnimatedCard>
-            )
-          })}
+      <div className="min-h-screen bg-gradient-navy">
+        {/* Premium animated background */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
         </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Risk Trend Chart */}
-          <AnimatedCard delay={0.32} className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                {/* Design intent: explain the chart in one sentence so it "reads" like a report. */}
-                <h3 className="text-lg font-semibold text-foreground">Risk score trend</h3>
-                <p className="text-xs text-muted-foreground">Daily average risk score (higher means more escalation)</p>
+        
+        <div className="relative z-10 space-y-8 p-6">
+          {/* Design intent: give immediate context + confidence without feeling like marketing copy. */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+          >
+            <motion.div variants={slideUp} className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">AI Risk Overview</h1>
+                <Badge className={status.badgeVariant === 'destructive' ? 'badge-risk' : 'badge-premium'}>
+                  {status.label}
+                </Badge>
               </div>
-              <Badge variant="secondary" className="font-mono">7d</Badge>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.38, ease: 'easeOut' }}
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    stroke="#888888"
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const v = (payload[0] as any).value
-                        return (
-                          <div className="rounded-md border bg-popover p-2 shadow-lg">
-                            <p className="text-sm font-medium text-foreground">{label}</p>
-                            <p className="text-xs text-muted-foreground">Avg risk: {Number(v).toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Events: {(payload[0] as any).payload?.logs || 0}
-                            </p>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="riskScore"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <p className="max-w-2xl text-sm text-muted">
+                SentinelAI continuously captures and scores AI decisions in production so engineering teams can audit safety,
+                explain outcomes, and investigate risk quickly.
+              </p>
+              <p className="text-xs text-muted">{status.description}</p>
             </motion.div>
-          </AnimatedCard>
 
-          {/* Flag Frequency Chart */}
-          <AnimatedCard delay={0.38} className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">Top risk signals</h3>
-                <p className="text-xs text-muted-foreground">Most common flags observed across recent events</p>
+            <motion.div variants={slideUp} className="flex flex-wrap items-center gap-2">
+              <motion.div {...buttonPress}>
+                <Button asChild className="btn-premium">
+                  <Link href="/logs">
+                    Investigate logs
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </motion.div>
+              <motion.div {...buttonPress}>
+                <Button asChild variant="outline" className="btn-premium-outline">
+                  <Link href="/baselines">Review baselines</Link>
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          {isError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="card-premium border-risk/30 bg-risk/10 p-4 text-sm text-risk-high"
+            >
+              {error instanceof Error ? error.message : 'Failed to load dashboard data'}
+            </motion.div>
+          )}
+
+          {/* Design intent: KPIs should feel authoritative (value + meaning), not decorative. */}
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+          >
+            {kpiCards.map((card, index) => {
+              const Icon = card.icon
+              const riskLevel = card.key === 'critical' ? 'critical' : card.key === 'avg' && kpis.avgRisk > 0.7 ? 'high' : 'low'
+              
+              return (
+                <MotionCard
+                  key={card.key}
+                  variants={slideUp}
+                  className="card-premium-glow p-6"
+                  {...riskLevelAnimations[riskLevel as keyof typeof riskLevelAnimations]}
+                  ref={(el: HTMLElement | null) => {
+                    if (el) registerInteractiveElement(el, riskLevel)
+                  }}
+                >
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-muted">{card.title}</div>
+                      {card.value === null ? (
+                        <Skeleton className="mt-2 h-7 w-16 bg-white/10" />
+                      ) : (
+                        <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                          <AnimatedCounter value={typeof card.value === 'number' ? card.value : 0} />
+                        </div>
+                      )}
+                      <div className="mt-2 text-xs leading-relaxed text-muted">{card.helper}</div>
+                    </div>
+
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${card.accentClass}`}
+                      aria-hidden="true"
+                    >
+                      <Icon className="h-5 w-5 text-electric-blue" />
+                    </div>
+                  </div>
+                </MotionCard>
+              )
+            })}
+          </motion.div>
+
+          {/* Charts Section */}
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            {/* Risk Trend Chart */}
+            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  {/* Design intent: explain the chart in one sentence so it "reads" like a report. */}
+                  <h3 className="text-lg font-semibold text-foreground">Risk score trend</h3>
+                  <p className="text-xs text-muted">Daily average risk score (higher means more escalation)</p>
+                </div>
+                <Badge className="badge-premium font-mono">7d</Badge>
               </div>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.38, ease: 'easeOut' }}
+              >
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                      stroke="#9CA3AF"
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const v = (payload[0] as any).value
+                          return (
+                            <div className="card-premium border border-white/10 p-2 shadow-premium">
+                              <p className="text-sm font-medium text-foreground">{label}</p>
+                              <p className="text-xs text-muted">Avg risk: {Number(v).toFixed(2)}</p>
+                              <p className="text-xs text-muted">
+                                Events: {(payload[0] as any).payload?.logs || 0}
+                              </p>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="riskScore"
+                      stroke="#4F8BFF"
+                      strokeWidth={2}
+                      dot={{ fill: '#4F8BFF', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </motion.div>
+            </MotionCard>
+
+            {/* Flag Frequency Chart */}
+            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Top risk signals</h3>
+                  <p className="text-xs text-muted">Most common flags observed across recent events</p>
+                </div>
+                <TrendingUp className="h-4 w-4 text-electric-blue" />
+              </div>
+              <div className="space-y-4">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-12 w-full bg-white/10" />
+                    <Skeleton className="h-12 w-full bg-white/10" />
+                    <Skeleton className="h-12 w-full bg-white/10" />
+                  </div>
+                ) : topFlags.length > 0 ? (
+                  topFlags.map((flag, index) => (
+                    <motion.div
+                      key={flag.flag}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 p-3"
+                      {...hoverScaleLift}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-electric-blue to-electric-violet" />
+                        <span className="text-sm font-medium text-foreground">{flag.flag}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-gradient">{flag.count}</p>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted">No flags available yet.</p>
+                )}
+              </div>
+            </MotionCard>
+          </motion.div>
+
+          {/* Design intent: this section answers "Where should I investigate?" */}
+          <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Recent high-risk activity</h3>
+                <p className="text-xs text-muted">
+                  Prioritized events to review. Click a row to open the full investigation report.
+                </p>
+              </div>
+              <motion.div {...buttonPress}>
+                <Button asChild variant="outline" className="btn-premium-outline">
+                  <Link href="/logs">View all logs</Link>
+                </Button>
+              </motion.div>
             </div>
-            <div className="space-y-4">
+
+            <div className="space-y-2">
               {isLoading ? (
                 <div className="space-y-3">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-16 w-full bg-white/10" />
+                  <Skeleton className="h-16 w-full bg-white/10" />
+                  <Skeleton className="h-16 w-full bg-white/10" />
                 </div>
-              ) : topFlags.length > 0 ? (
-                topFlags.map((flag) => (
-                  <div
-                    key={flag.flag}
-                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 rounded-full bg-primary/60" />
-                      <span className="text-sm font-medium text-foreground">{flag.flag}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-foreground">{flag.count}</p>
-                    </div>
-                  </div>
-                ))
+              ) : recentHighRisk.length > 0 ? (
+                recentHighRisk.map((log: any, index) => {
+                  const id = log?.id
+                  const risk = typeof log?._risk === 'number' ? log._risk : 0
+                  const decision = String(log?.decision || 'unknown')
+                  const flags = Array.isArray(log?._flags) ? log._flags : []
+                  const created = log?._created instanceof Date ? log._created : null
+
+                  const riskVariant =
+                    risk >= 0.8 ? 'critical' : risk >= 0.6 ? 'high' : risk >= 0.4 ? 'medium' : 'low'
+
+                  return (
+                    <motion.div
+                      key={String(id)}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <Link
+                        href={`/logs/${id}`}
+                        className={`group flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/20 p-4 transition-all hover:bg-black/30 ${
+                          riskVariant === 'critical' ? 'hover:shadow-glow-risk' : 
+                          riskVariant === 'high' ? 'hover:shadow-glow-warning' : 
+                          'hover:shadow-glow'
+                        }`}
+                        {...hoverScaleLift}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={
+                              riskVariant === 'critical' ? 'badge-risk' :
+                              riskVariant === 'high' ? 'badge-warning' :
+                              'badge-premium'
+                            }>
+                              {risk.toFixed(2)}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs border-white/20 text-muted">
+                              {decision}
+                            </Badge>
+                            <span className="text-xs text-muted">Event #{String(id)}</span>
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="text-xs text-muted">
+                              {created ? created.toLocaleString() : '—'}
+                            </span>
+                            {flags.length > 0 && (
+                              <span className="truncate text-xs text-muted">{flags.slice(0, 3).join(' • ')}</span>
+                            )}
+                            {flags.length > 3 && (
+                              <span className="text-xs text-muted">+{flags.length - 3} more</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted transition-colors group-hover:text-foreground">
+                          <span className="hidden sm:inline">Investigate</span>
+                          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </div>
+                      </Link>
+                    </motion.div>
+                  )
+                })
               ) : (
-                <p className="text-sm text-muted-foreground">No flags available yet.</p>
+                <div className="card-premium border border-white/10 bg-black/20 p-4 text-sm text-muted">
+                  No events captured yet. Once AI systems are connected, SentinelAI will automatically log decisions here.
+                </div>
               )}
             </div>
-          </AnimatedCard>
+          </MotionCard>
         </div>
-
-        {/* Design intent: this section answers "Where should I investigate?" */}
-        <AnimatedCard delay={0.44} className="p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Recent high-risk activity</h3>
-              <p className="text-xs text-muted-foreground">
-                Prioritized events to review. Click a row to open the full investigation report.
-              </p>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/logs">View all logs</Link>
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : recentHighRisk.length > 0 ? (
-              recentHighRisk.map((log: any) => {
-                const id = log?.id
-                const risk = typeof log?._risk === 'number' ? log._risk : 0
-                const decision = String(log?.decision || 'unknown')
-                const flags = Array.isArray(log?._flags) ? log._flags : []
-                const created = log?._created instanceof Date ? log._created : null
-
-                const riskVariant =
-                  risk >= 0.8 ? 'destructive' : risk >= 0.6 ? 'default' : risk >= 0.4 ? 'secondary' : 'outline'
-
-                return (
-                  <Link
-                    key={String(id)}
-                    href={`/logs/${id}`}
-                    className="group flex items-center justify-between gap-4 rounded-lg border bg-card/50 p-4 transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={riskVariant} className="font-mono">
-                          {risk.toFixed(2)}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {decision}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">Event #{String(id)}</span>
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          {created ? created.toLocaleString() : '—'}
-                        </span>
-                        {flags.length > 0 && (
-                          <span className="truncate text-xs text-muted-foreground">{flags.slice(0, 3).join(' • ')}</span>
-                        )}
-                        {flags.length > 3 && (
-                          <span className="text-xs text-muted-foreground">+{flags.length - 3} more</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
-                      <span className="hidden sm:inline">Investigate</span>
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                  </Link>
-                )
-              })
-            ) : (
-              <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                No events captured yet. Once AI systems are connected, SentinelAI will automatically log decisions here.
-              </div>
-            )}
-          </div>
-        </AnimatedCard>
       </div>
     </AppLayoutModern>
   )

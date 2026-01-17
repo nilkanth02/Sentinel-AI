@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from 'next-themes'
+import { CursorProvider, CursorHalo } from './hooks/useCursorInteractions'
 
 // Providers component wraps app with React Query and theme support
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -25,7 +26,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <CursorProvider>
+          {children}
+        </CursorProvider>
+        <CursorHalo />
         {process.env.NODE_ENV === 'development' ? (
           <ReactQueryDevtools initialIsOpen={false} />
         ) : null}
