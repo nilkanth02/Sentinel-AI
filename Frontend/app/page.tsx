@@ -18,15 +18,16 @@ const scrollToSection = (sectionId: string, setActiveSectionFn?: (section: strin
     const headerHeight = 80 // Height of sticky header
     const elementPosition = element.offsetTop - headerHeight
     
+    // Update active section immediately
+    if (setActiveSectionFn) {
+      setActiveSectionFn(sectionId)
+    }
+    
+    // Smooth scroll
     window.scrollTo({
       top: elementPosition,
       behavior: 'smooth'
     })
-    
-    // Update active section
-    if (setActiveSectionFn) {
-      setActiveSectionFn(sectionId)
-    }
   }
 }
 import { 
@@ -44,6 +45,7 @@ import {
 } from '@/components/ui/motion'
 import {
   ArrowRight,
+  ChevronDown,
   BarChart3,
   FileText,
   Filter,
@@ -273,7 +275,7 @@ export default function LandingPage() {
                 key={item.id}
                 onClick={() => {
                   scrollToSection(item.id, setActiveSection)
-                  setMobileMenuOpen(false)
+                  setTimeout(() => setMobileMenuOpen(false), 300)
                 }}
                 className={`block text-sm font-medium transition-colors py-2 text-left w-full ${
                   activeSection === item.id 
@@ -290,14 +292,14 @@ export default function LandingPage() {
                 variant="outline" 
                 className="w-full border-white/10 bg-black/20 text-muted hover:bg-white/10 hover:text-white glass-effect-dark"
               >
-                <Link href="/logs" onClick={() => setMobileMenuOpen(false)}>View risk logs</Link>
+                <Link href="/logs" onClick={() => setTimeout(() => setMobileMenuOpen(false), 300)}>View risk logs</Link>
               </Button>
               <Button 
                 asChild 
                 className="w-full bg-gradient-to-r from-electric-blue to-electric-violet hover:from-electric-blue/90 hover:to-electric-violet/90 text-white border-0 shadow-glow"
                 {...hoverGlow}
               >
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/dashboard" onClick={() => setTimeout(() => setMobileMenuOpen(false), 300)}>
                   Open console
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
@@ -492,52 +494,104 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          {/* Simplified workflow cards - clear, instructional, one step per card */}
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
-            {[
-              {
-                step: '1',
-                icon: Waypoints,
-                title: 'Input',
-                description: 'AI applications send prompts and responses to SentinelAI for analysis.',
-                color: 'from-electric-teal to-primary'
-              },
-              {
-                step: '2',
-                icon: Shield,
-                title: 'Analysis',
-                description: 'SentinelAI evaluates risk, detects signals, and makes a decision with confidence.',
-                color: 'from-primary to-electric-violet'
-              },
-              {
-                step: '3',
-                icon: BarChart3,
-                title: 'Insight',
-                description: 'Get investigation-ready logs, explanations, and risk intelligence for your team.',
-                color: 'from-electric-violet to-electric-teal'
-              }
-            ].map((item, index) => (
+          {/* Visual flow - clean icons with arrows showing progression */}
+          <div className="mx-auto mt-16">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+              {/* Step 1 */}
               <motion.div
-                key={item.title}
-                className="workflow-item"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.16, delay: index * 0.08 }}
+                transition={{ duration: 0.16, delay: 0 }}
+                className="flex flex-col items-center text-center"
               >
-                <MotionCard variants={sectionFade} className="h-full border-navy-700 hover:border-primary/30 transition-all duration-300">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} shadow-lg flex-shrink-0">
-                      <span className="text-2xl font-bold text-white">{item.step}</span>
-                    </div>
-                    <div className="space-y-3 flex-1">
-                      <div className="text-xl font-semibold text-white leading-tight">{item.title}</div>
-                      <div className="text-sm text-navy-300 leading-6 mt-1">{item.description}</div>
-                    </div>
-                  </div>
-                </MotionCard>
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-electric-teal to-primary shadow-lg mb-4">
+                  <Waypoints className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-lg font-semibold text-white mb-2">Input</div>
+                <div className="text-sm text-navy-300 max-w-xs">AI sends data</div>
               </motion.div>
-            ))}
+
+              {/* Arrow 1->2 */}
+              <div className="hidden lg:block">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.16, delay: 0.08 }}
+                  className="flex items-center"
+                >
+                  <ArrowRight className="h-6 w-6 text-primary/40" />
+                </motion.div>
+              </div>
+
+              {/* Mobile arrow */}
+              <div className="lg:hidden">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.16, delay: 0.08 }}
+                >
+                  <ChevronDown className="h-6 w-6 text-primary/40" />
+                </motion.div>
+              </div>
+
+              {/* Step 2 */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.16, delay: 0.08 }}
+                className="flex flex-col items-center text-center"
+              >
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-electric-violet shadow-lg mb-4">
+                  <Shield className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-lg font-semibold text-white mb-2">Analysis</div>
+                <div className="text-sm text-navy-300 max-w-xs">Risk evaluation</div>
+              </motion.div>
+
+              {/* Arrow 2->3 */}
+              <div className="hidden lg:block">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.16, delay: 0.16 }}
+                  className="flex items-center"
+                >
+                  <ArrowRight className="h-6 w-6 text-primary/40" />
+                </motion.div>
+              </div>
+
+              {/* Mobile arrow */}
+              <div className="lg:hidden">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.16, delay: 0.16 }}
+                >
+                  <ChevronDown className="h-6 w-6 text-primary/40" />
+                </motion.div>
+              </div>
+
+              {/* Step 3 */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.16, delay: 0.16 }}
+                className="flex flex-col items-center text-center"
+              >
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-electric-violet to-electric-teal shadow-lg mb-4">
+                  <BarChart3 className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-lg font-semibold text-white mb-2">Insight</div>
+                <div className="text-sm text-navy-300 max-w-xs">Clear results</div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
