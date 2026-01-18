@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   LayoutDashboard,
+  ScanSearch,
   FileText,
   Settings,
   BarChart3
@@ -14,6 +15,7 @@ import {
 
 const navigationItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/analyze', label: 'Analyze', icon: ScanSearch },
   { href: '/logs', label: 'Risk Logs', icon: FileText },
   { href: '/baselines', label: 'Baselines', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from contextlib import contextmanager
 
 from app.storage.db import Base
 from app.storage.models import RiskLog
@@ -24,12 +25,17 @@ def test_db():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # Ensure all models are imported so tables are registered on shared Base
+    from app.storage import models as _risk_log_models  # noqa: F401
+    from app.storage import prompt_baselines as _prompt_baseline_models  # noqa: F401
+    from app.utils import models as _settings_models  # noqa: F401
     
     # Create all tables
     Base.metadata.create_all(bind=engine)
     
     # Create session factory
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
     
     # Create session
     db = TestingSessionLocal()
@@ -46,14 +52,38 @@ def client(test_db):
     """Create a test client with database dependency override."""
     from main import app
     from app.api.routes import get_db
-    
+    from app.api.baseline_routes import get_db as get_baseline_db
+    import main as main_module
+    from app.services.database_service import DatabaseService
+    from app.services.settings_service_db import settings_service
+    from app.services.database_service import SettingsRepository
+
     def override_get_db():
         try:
             yield test_db
         finally:
             pass
+
+    # Prevent main.py startup event from calling init_db against the file-backed DB
+    main_module.init_db = lambda: None
+
+    @contextmanager
+    def override_get_session():
+        try:
+            yield test_db
+            test_db.commit()
+        except Exception:
+            test_db.rollback()
+            raise
+
+    DatabaseService.get_session = staticmethod(override_get_session)
+    settings_service._current = None
+    with override_get_session() as db:
+        if SettingsRepository.get_current(db) is None:
+            SettingsRepository.create_default(db)
     
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_baseline_db] = override_get_db
     
     with TestClient(app) as test_client:
         yield test_client

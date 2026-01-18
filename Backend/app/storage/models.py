@@ -18,3 +18,7 @@ class RiskLog(Base):
     decision = Column(String, nullable=False)  # allow/warn/block/escalate
     decision_reason = Column(String, nullable=False)  # Human-readable explanation
     signals = Column(Text, nullable=False)  # JSON string storing structured signal data for auditability
+
+    # Settings traceability
+    settings_version = Column(Integer, nullable=True)
+    thresholds_applied = Column(Text, nullable=True)  # JSON string

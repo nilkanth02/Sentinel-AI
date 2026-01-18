@@ -26,6 +26,7 @@ from app.scoring.aggregator import aggregate_risk_signals
 from app.storage.crud import log_risk_event, get_recent_risk_logs, get_risk_log_by_id
 from app.storage.db import SessionLocal
 from app.signals.registry import SignalRegistry
+from app.services.settings_service_db import settings_service
 from app.agent.reasoner import RiskReasoner
 from app.policy.engine import PolicyEngine
 from app.actions.executor import ActionExecutor
@@ -71,6 +72,11 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
     Returns:
         Analysis results with final risk score and triggered flags
     """
+    # Reload settings if changed
+    settings_service.reload_settings()
+    
+    # Get current settings version for logging
+    settings_version = settings_service.get_settings_version()
     # Step 1: Run prompt signal detectors
     prompt_signals = signal_registry.run_detectors("prompt", prompt=request.prompt)
     
@@ -151,7 +157,9 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
             confidence=aggregated_result.get("confidence"),
             decision=policy_decision.action.value,  # Audit field
             decision_reason=policy_decision.explanation,  # Audit field
-            signals=aggregated_result["flags"]  # Audit field - store flags as signals
+            signals=aggregated_result["flags"],  # Audit field - store flags as signals
+            settings_version=settings_version,  # Traceability field
+            thresholds_applied=settings_service.get_thresholds()  # Traceability field
         )
     except Exception as e:
         # Logging failure should not affect API response
@@ -165,7 +173,9 @@ async def analyze_interaction(request: AnalyzeRequest, db: Session = Depends(get
         confidence=aggregated_result.get("confidence"),
         decision=policy_decision.action.value,
         action_taken=action_result.action.value,
-        decision_reason=policy_decision.explanation
+        decision_reason=policy_decision.explanation,
+        settings_version=settings_version,
+        thresholds_applied=settings_service.get_thresholds(),
     )
 
 
@@ -186,6 +196,12 @@ async def get_risk_logs(limit: int = 50, db: Session = Depends(get_db)):
             decision=log.decision,
             action_taken=log.decision,
             decision_reason=log.decision_reason,
+            settings_version=getattr(log, 'settings_version', None),
+            thresholds_applied=(
+                json.loads(getattr(log, 'thresholds_applied', None))
+                if getattr(log, 'thresholds_applied', None)
+                else None
+            ),
         )
         for log in logs
     ]
@@ -206,6 +222,15 @@ async def get_risk_log_detail(id: int, db: Session = Depends(get_db)):
         signals = log.signals
 
     try:
+        thresholds_applied = (
+            json.loads(getattr(log, 'thresholds_applied', None))
+            if getattr(log, 'thresholds_applied', None)
+            else None
+        )
+    except Exception:
+        thresholds_applied = getattr(log, 'thresholds_applied', None)
+
+    try:
         flags = json.loads(log.flags) if log.flags else []
     except Exception:
         flags = []
@@ -222,5 +247,7 @@ async def get_risk_log_detail(id: int, db: Session = Depends(get_db)):
         decision=log.decision,
         action_taken=log.decision,
         decision_reason=log.decision_reason,
+        settings_version=getattr(log, 'settings_version', None),
+        thresholds_applied=thresholds_applied,
     )
 

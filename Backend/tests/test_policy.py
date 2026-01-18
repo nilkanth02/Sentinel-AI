@@ -14,7 +14,7 @@ class TestPolicyEngine:
         engine = PolicyEngine()
         
         assert hasattr(engine, 'policy_rules')
-        assert hasattr(engine, 'safety_thresholds')
+        assert hasattr(engine, 'critical_factors')
     
     def test_policy_decision_dataclass(self):
         """Test PolicyDecision dataclass structure."""

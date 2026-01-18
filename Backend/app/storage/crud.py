@@ -14,6 +14,8 @@ def log_risk_event(
     decision: str = None,
     decision_reason: str = None,
     signals: List[str] = None,
+    settings_version: Optional[int] = None,
+    thresholds_applied: Optional[dict] = None,
 ):
     """Log a risk analysis event to the database with full audit information."""
     try:
@@ -27,6 +29,8 @@ def log_risk_event(
             decision=decision or "unknown",  # New audit field
             decision_reason=decision_reason or "No reason provided",  # New audit field
             signals=json.dumps(signals or []),  # New audit field - as JSON
+            settings_version=settings_version,
+            thresholds_applied=json.dumps(thresholds_applied) if thresholds_applied is not None else None,
         )
         db.add(risk_log)
         db.commit()

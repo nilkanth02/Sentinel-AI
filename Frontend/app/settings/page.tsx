@@ -1,7 +1,9 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import { AppLayoutModern } from '../components/layout/AppLayoutModern'
 import { Button, Switch, Separator, Input, Label } from '@/components/ui'
+import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { motion } from 'framer-motion'
 import { useCursorInteractions } from '@/hooks/useCursorInteractions'
@@ -13,9 +15,140 @@ import {
   hoverGlow,
   buttonPress
 } from '@/components/ui/motion'
+import { toast } from 'sonner'
+
+type Settings = {
+  warn_threshold: number
+  escalate_threshold: number
+  confidence_floor: number
+  signal_weights: {
+    prompt_anomaly: number
+    jailbreak_attempt: number
+    unsafe_output: number
+  }
+  enforcement_mode: 'allow' | 'warn' | 'escalate'
+  version: number
+  updated_at?: string
+}
+
+type SettingsHistoryEntry = {
+  id: number
+  settings_id: number
+  version: number
+  settings_snapshot: any
+  thresholds_applied: any
+  created_at: string
+  updated_by?: string
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  warn_threshold: 0.3,
+  escalate_threshold: 0.7,
+  confidence_floor: 0.5,
+  signal_weights: {
+    prompt_anomaly: 0.3,
+    jailbreak_attempt: 0.4,
+    unsafe_output: 0.3
+  },
+  enforcement_mode: 'warn',
+  version: 1
+}
 
 export default function SettingsPageModern() {
   const { registerInteractiveElement } = useCursorInteractions()
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [history, setHistory] = useState<SettingsHistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        if (response.ok) {
+          const data = await response.json()
+          setSettings(data)
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+        toast.error('Failed to load settings')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [])
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      setHistoryLoading(true)
+      try {
+        const response = await fetch('/api/settings/history?limit=10', { cache: 'no-store' })
+        if (!response.ok) {
+          const msg = await response.text()
+          throw new Error(msg || `HTTP error! status: ${response.status}`)
+        }
+        const data = await response.json()
+        setHistory(Array.isArray(data) ? (data as SettingsHistoryEntry[]) : [])
+      } catch (error) {
+        console.error('Failed to load settings history:', error)
+        setHistory([])
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+
+    loadHistory()
+  }, [])
+
+  // Save settings
+  const saveSettings = async () => {
+    setSaving(true)
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      })
+      
+      if (response.ok) {
+        const updatedSettings = await response.json()
+        setSettings(updatedSettings)
+        setHasChanges(false)
+        toast.success('Settings saved successfully')
+      } else {
+        const error = await response.text()
+        toast.error(`Failed to save settings: ${error}`)
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+      toast.error('Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Update settings and track changes
+  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+    setSettings(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }
+
+  const updateSignalWeight = (signal: keyof Settings['signal_weights'], value: number) => {
+    setSettings(prev => ({
+      ...prev,
+      signal_weights: {
+        ...prev.signal_weights,
+        [signal]: value
+      }
+    }))
+    setHasChanges(true)
+  }
+
   return (
     <AppLayoutModern>
       <div className="min-h-screen bg-gradient-navy">
@@ -31,8 +164,18 @@ export default function SettingsPageModern() {
             variants={staggerContainer}
             className="space-y-2"
           >
-            <motion.h1 variants={slideUp} className="text-3xl font-bold tracking-tight text-foreground">Settings</motion.h1>
-            <motion.p variants={slideUp} className="text-muted">Configure the brain of your AI safety system</motion.p>
+            <motion.h1 variants={slideUp} className="text-3xl font-bold tracking-tight text-foreground">
+              Settings
+              {loading && <span className="ml-2 text-sm text-muted">(Loading...)</span>}
+            </motion.h1>
+            <motion.p variants={slideUp} className="text-muted">
+              Configure SentinelAI risk assessment behavior
+              {settings.updated_at && (
+                <span className="ml-2 text-xs text-muted">
+                  (Last updated: {new Date(settings.updated_at).toLocaleDateString()})
+                </span>
+              )}
+            </motion.p>
           </motion.div>
 
           {/* Settings Sections */}
@@ -40,40 +183,60 @@ export default function SettingsPageModern() {
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
           >
-            {/* General Settings */}
+            {/* Risk Thresholds */}
             <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
-              <h2 className="text-xl font-semibold text-foreground mb-4">General Settings</h2>
-              <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Risk Thresholds</h2>
+              <div className="space-y-6">
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.1 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
+                  className="space-y-3"
                 >
-                  <div className="space-y-1">
-                    <Label htmlFor="email-notifications" className="text-foreground">Email Notifications</Label>
-                    <p className="text-sm text-muted">Receive email alerts for critical events</p>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="warn-threshold" className="text-foreground">Warning Threshold</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.warn_threshold.toFixed(2)}
+                    </span>
                   </div>
-                  <Switch id="email-notifications" className="data-[state=checked]:bg-electric-blue" />
+                  <Slider
+                    id="warn-threshold"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.warn_threshold]}
+                    onValueChange={([value]) => updateSetting('warn_threshold', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Risk score at which warnings are triggered</p>
                 </motion.div>
                 
                 <Separator className="bg-white/10" />
                 
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
+                  className="space-y-3"
                 >
-                  <div className="space-y-1">
-                    <Label htmlFor="auto-refresh" className="text-foreground">Auto-refresh</Label>
-                    <p className="text-sm text-muted">Automatically refresh dashboard data</p>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="escalate-threshold" className="text-foreground">Escalation Threshold</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.escalate_threshold.toFixed(2)}
+                    </span>
                   </div>
-                  <Switch id="auto-refresh" className="data-[state=checked]:bg-electric-blue" />
+                  <Slider
+                    id="escalate-threshold"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.escalate_threshold]}
+                    onValueChange={([value]) => updateSetting('escalate_threshold', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Risk score at which escalation is triggered</p>
                 </motion.div>
                 
                 <Separator className="bg-white/10" />
@@ -82,181 +245,151 @@ export default function SettingsPageModern() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.3 }}
-                  className="space-y-2"
+                  className="space-y-3"
                 >
-                  <Label htmlFor="timezone" className="text-foreground">Time Zone</Label>
-                  <Select>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="confidence-floor" className="text-foreground">Confidence Floor</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.confidence_floor.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    id="confidence-floor"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.confidence_floor]}
+                    onValueChange={([value]) => updateSetting('confidence_floor', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Minimum confidence required for risk assessment</p>
+                </motion.div>
+              </div>
+            </MotionCard>
+
+            {/* Signal Sensitivity */}
+            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Signal Sensitivity</h2>
+              <div className="space-y-6">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="prompt-anomaly" className="text-foreground">Prompt Anomaly</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.signal_weights.prompt_anomaly.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    id="prompt-anomaly"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.signal_weights.prompt_anomaly]}
+                    onValueChange={([value]) => updateSignalWeight('prompt_anomaly', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Weight for detecting unusual prompt patterns</p>
+                </motion.div>
+                
+                <Separator className="bg-white/10" />
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="jailbreak-attempt" className="text-foreground">Jailbreak Attempt</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.signal_weights.jailbreak_attempt.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    id="jailbreak-attempt"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.signal_weights.jailbreak_attempt]}
+                    onValueChange={([value]) => updateSignalWeight('jailbreak_attempt', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Weight for detecting jailbreak attempts</p>
+                </motion.div>
+                
+                <Separator className="bg-white/10" />
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="unsafe-output" className="text-foreground">Unsafe Output</Label>
+                    <span className="text-sm font-mono bg-navy-800 px-2 py-1 rounded">
+                      {settings.signal_weights.unsafe_output.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    id="unsafe-output"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={[settings.signal_weights.unsafe_output]}
+                    onValueChange={([value]) => updateSignalWeight('unsafe_output', value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted">Weight for detecting unsafe output patterns</p>
+                </motion.div>
+              </div>
+            </MotionCard>
+
+            {/* Enforcement Mode */}
+            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Enforcement Mode</h2>
+              <div className="space-y-4">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="space-y-3"
+                >
+                  <Label htmlFor="enforcement-mode" className="text-foreground">Default Action</Label>
+                  <Select value={settings.enforcement_mode} onValueChange={(value) => updateSetting('enforcement_mode', value as 'allow' | 'warn' | 'escalate')}>
                     <SelectTrigger className="input-premium">
-                      <SelectValue placeholder="Select timezone" />
+                      <SelectValue placeholder="Select enforcement mode" />
                     </SelectTrigger>
                     <SelectContent className="card-premium border-white/10">
-                      <SelectItem value="utc">UTC</SelectItem>
-                      <SelectItem value="est">EST</SelectItem>
-                      <SelectItem value="pst">PST</SelectItem>
-                      <SelectItem value="ist">IST</SelectItem>
+                      <SelectItem value="allow">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          Allow - Pass through all requests
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="warn">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                          Warn - Log warnings but allow
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="escalate">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          Escalate - Block high-risk requests
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted">Default action when thresholds are exceeded</p>
                 </motion.div>
               </div>
             </MotionCard>
 
-            {/* Security Settings */}
-            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
-              <h2 className="text-xl font-semibold text-foreground mb-4">Security Settings</h2>
-              <div className="space-y-4">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="two-factor" className="text-foreground">Two-Factor Authentication</Label>
-                    <p className="text-sm text-muted">Add an extra layer of security</p>
-                  </div>
-                  <Switch id="two-factor" className="data-[state=checked]:bg-electric-violet" />
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="session-timeout" className="text-foreground">Session Timeout</Label>
-                    <p className="text-sm text-muted">Automatically log out after inactivity</p>
-                  </div>
-                  <Switch id="session-timeout" className="data-[state=checked]:bg-electric-violet" />
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.4 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="password" className="text-foreground">Change Password</Label>
-                  <Input type="password" id="password" placeholder="Enter new password" className="input-premium" />
-                </motion.div>
-              </div>
-            </MotionCard>
-
-            {/* Risk Assessment Settings */}
-            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
-              <h2 className="text-xl font-semibold text-foreground mb-4">Risk Assessment</h2>
-              <div className="space-y-4">
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="risk-threshold" className="text-foreground">Risk Threshold</Label>
-                  <Select>
-                    <SelectTrigger className="input-premium">
-                      <SelectValue placeholder="Select threshold" />
-                    </SelectTrigger>
-                    <SelectContent className="card-premium border-white/10">
-                      <SelectItem value="low">Low (0.3)</SelectItem>
-                      <SelectItem value="medium">Medium (0.5)</SelectItem>
-                      <SelectItem value="high">High (0.7)</SelectItem>
-                      <SelectItem value="critical">Critical (0.9)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="ai-detection" className="text-foreground">AI-Powered Detection</Label>
-                    <p className="text-sm text-muted">Use advanced AI for risk analysis</p>
-                  </div>
-                  <Switch id="ai-detection" defaultChecked className="data-[state=checked]:bg-electric-blue" />
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="real-time" className="text-foreground">Real-time Monitoring</Label>
-                    <p className="text-sm text-muted">Monitor risks in real-time</p>
-                  </div>
-                  <Switch id="real-time" defaultChecked className="data-[state=checked]:bg-electric-blue" />
-                </motion.div>
-              </div>
-            </MotionCard>
-
-            {/* Notification Settings */}
-            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
-              <h2 className="text-xl font-semibold text-foreground mb-4">Notification Settings</h2>
-              <div className="space-y-4">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="critical-alerts" className="text-foreground">Critical Alerts</Label>
-                    <p className="text-sm text-muted">Immediate notifications for critical risks</p>
-                  </div>
-                  <Switch id="critical-alerts" defaultChecked className="data-[state=checked]:bg-electric-blue" />
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="weekly-reports" className="text-foreground">Weekly Reports</Label>
-                    <p className="text-sm text-muted">Receive weekly risk summary reports</p>
-                  </div>
-                  <Switch id="weekly-reports" className="data-[state=checked]:bg-electric-blue" />
-                </motion.div>
-                
-                <Separator className="bg-white/10" />
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                  className="flex items-center justify-between"
-                  {...hoverScaleLift}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="browser-notifications" className="text-foreground">Browser Notifications</Label>
-                    <p className="text-sm text-muted">Show desktop notifications</p>
-                  </div>
-                  <Switch id="browser-notifications" className="data-[state=checked]:bg-electric-blue" />
-                </motion.div>
-              </div>
-            </MotionCard>
           </motion.div>
 
           {/* Action Buttons */}
@@ -264,14 +397,77 @@ export default function SettingsPageModern() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
-            className="flex justify-end space-x-4 pt-6"
+            className="flex justify-between items-center pt-6"
           >
-            <motion.div {...buttonPress}>
-              <Button variant="outline" className="btn-premium-outline">Cancel</Button>
-            </motion.div>
-            <motion.div {...buttonPress}>
-              <Button className="btn-premium">Save Changes</Button>
-            </motion.div>
+            <div className="text-sm text-muted">
+              Version {settings.version} 
+              {hasChanges && <span className="ml-2 text-yellow-400">(Unsaved changes)</span>}
+            </div>
+            <div className="flex space-x-4">
+              <motion.div {...buttonPress}>
+                <Button 
+                  variant="outline" 
+                  className="btn-premium-outline"
+                  onClick={() => {
+                    // Reset to defaults logic could go here
+                  }}
+                >
+                  Reset to Defaults
+                </Button>
+              </motion.div>
+              <motion.div {...buttonPress}>
+                <Button 
+                  className="btn-premium"
+                  onClick={saveSettings}
+                  disabled={saving || !hasChanges}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="pt-6"
+          >
+            <MotionCard variants={slideUp} className="card-premium p-6" {...hoverGlow}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">Settings history</h2>
+                  <p className="text-xs text-muted">Versioned audit trail of settings updates</p>
+                </div>
+                {historyLoading && <span className="text-xs text-muted">Loading…</span>}
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {history.length === 0 ? (
+                  <div className="text-sm text-muted">No history available</div>
+                ) : (
+                  history.map((h) => (
+                    <div
+                      key={h.id}
+                      className="rounded-xl border border-white/10 bg-black/20 p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-medium text-foreground">
+                          v{h.version}
+                          {h.updated_by ? <span className="ml-2 text-xs text-muted">by {h.updated_by}</span> : null}
+                        </div>
+                        <div className="text-xs font-mono text-muted">
+                          {h.created_at ? new Date(h.created_at).toLocaleString() : '—'}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs font-mono text-foreground/90 whitespace-pre-wrap">
+                        {h.thresholds_applied ? JSON.stringify(h.thresholds_applied, null, 2) : '—'}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </MotionCard>
           </motion.div>
         </div>
       </div>

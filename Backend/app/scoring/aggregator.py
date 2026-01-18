@@ -9,14 +9,11 @@ scoring using severity-aware weighted max and merges risk flags into a unified l
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
-# Import centralized risk configuration
-from app.config.risk_config import (
-    SIGNAL_WEIGHTS, 
-    SEVERITY_BASES, 
-    DECISION_ALIGNMENT,
-    MIN_SCORE,
-    MAX_SCORE
-)
+# Import centralized risk configuration for normalization/alignment
+from app.config.risk_config import DECISION_ALIGNMENT, MAX_SCORE, MIN_SCORE
+
+# Import settings service for dynamic configuration
+from app.services.settings_service_db import settings_service
 
 
 @dataclass
@@ -36,17 +33,22 @@ class RiskAggregator:
     
     def __init__(self):
         """
-        Initialize the risk aggregator with centralized configuration.
+        Initialize the risk aggregator with dynamic settings.
         
-        Uses centralized risk configuration for consistency across all components.
+        Uses live settings from settings service for real-time configuration.
         """
-        # Use centralized signal weights
-        self.prompt_weight = SIGNAL_WEIGHTS["prompt_anomaly"]
-        self.jailbreak_weight = SIGNAL_WEIGHTS["jailbreak_attempt"] 
-        self.output_weight = SIGNAL_WEIGHTS["unsafe_output"]
+        # Get current signal weights from settings
+        weights = settings_service.get_signal_weights()
+        self.prompt_weight = weights["prompt_anomaly"]
+        self.jailbreak_weight = weights["jailbreak_attempt"] 
+        self.output_weight = weights["unsafe_output"]
         
         # Use centralized severity bases for normalization
-        self.severity_bases = SEVERITY_BASES
+        self.severity_bases = {
+            "prompt_anomaly": 0.3,
+            "jailbreak_attempt": 0.5,
+            "unsafe_output": 0.8
+        }
     
     def _normalize_score(self, score: float) -> float:
         """
@@ -213,12 +215,13 @@ class RiskAggregator:
         """
         present_sources = 0
         
-        # Check if each detector ran (non-empty dict)
-        if prompt_signals:
+        # Confidence is based on detector execution, not whether a signal was present.
+        # If a detector ran, we should count it even if `present` is False.
+        if prompt_signals is not None:
             present_sources += 1
-        if jailbreak_signals:
+        if jailbreak_signals is not None:
             present_sources += 1
-        if output_signals:
+        if output_signals is not None:
             present_sources += 1
         
         # Confidence = (#present signal sources) / 3
@@ -302,12 +305,8 @@ class RiskAggregator:
         # Merge flags from all sources
         flags = self._merge_flags(prompt_signals, jailbreak_signals, output_signals)
         
-        # Calculate confidence based on signal presence
-        confidence = self._calculate_confidence(
-            {"prompt_anomaly": prompt_signals} if prompt_signals.get("present") else {},
-            {"jailbreak_rag": jailbreak_signals} if jailbreak_signals.get("present") else {},
-            {"output_risk": output_signals}
-        )
+        # Calculate confidence based on detector execution
+        confidence = self._calculate_confidence(prompt_signals, jailbreak_signals, output_signals)
         
         return {
             "final_score": round(final_score, 3),
@@ -353,7 +352,14 @@ class RiskAggregator:
 # Public functional interface (used by API / orchestration layers)
 # ------------------------------------------------------------------
 
-_default_aggregator = RiskAggregator()
+_default_aggregator = None
+
+
+def _get_default_aggregator() -> RiskAggregator:
+    global _default_aggregator
+    if _default_aggregator is None:
+        _default_aggregator = RiskAggregator()
+    return _default_aggregator
 
 
 def aggregate_risk_signals(prompt_signals: Dict[str, Any], 
@@ -376,7 +382,7 @@ def aggregate_risk_signals(prompt_signals: Dict[str, Any],
     Returns:
         Aggregated risk assessment with final score and unified flags
     """
-    return _default_aggregator.aggregate_from_dicts(prompt_signals, jailbreak_signals, output_signals, decision)
+    return _get_default_aggregator().aggregate_from_dicts(prompt_signals, jailbreak_signals, output_signals, decision)
 
 
 def create_custom_aggregator() -> RiskAggregator:

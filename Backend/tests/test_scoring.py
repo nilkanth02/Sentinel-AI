@@ -86,6 +86,13 @@ class TestRiskAggregator:
 
     def test_aggregator_initialization(self):
         """Test that aggregator initializes correctly."""
+        from app.services.settings_service_db import settings_service
+        settings_service._current = None
+        settings_service.get_signal_weights = lambda: {
+            "prompt_anomaly": 0.3,
+            "jailbreak_attempt": 0.4,
+            "unsafe_output": 0.3,
+        }
         aggregator = RiskAggregator()
 
         # Check that aggregator has the correct attributes

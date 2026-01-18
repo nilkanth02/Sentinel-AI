@@ -19,6 +19,8 @@ import {
 
 interface RiskLogDetailClientModernProps {
   log: {
+    prompt?: string
+    response?: string
     final_risk_score?: number
     flags?: string[]
     confidence?: number
@@ -27,6 +29,8 @@ interface RiskLogDetailClientModernProps {
     decision_reason?: string
     created_at?: string
     signals?: any
+    settings_version?: number | null
+    thresholds_applied?: any
   }
   logId: string
 }
@@ -417,6 +421,20 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-muted">Log ID</span>
                     <span className="font-mono text-foreground">#{logId}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted">Settings version</span>
+                    <span className="font-mono text-foreground">
+                      {typeof log?.settings_version === 'number' ? `v${log.settings_version}` : '—'}
+                    </span>
+                  </div>
+
+                  <div className="pt-2">
+                    <div className="text-xs font-medium text-muted">Thresholds applied</div>
+                    <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs font-mono text-foreground/90 whitespace-pre-wrap">
+                      {log?.thresholds_applied ? JSON.stringify(log.thresholds_applied, null, 2) : '—'}
+                    </div>
                   </div>
                 </div>
               </MotionCard>

@@ -93,12 +93,20 @@ class TestRiskLogCRUD:
             response="Test response",
             final_risk_score=0.3,
             flags=["test"],
-            confidence=0.85
+            confidence=0.85,
+            settings_version=1,
+            thresholds_applied={
+                "warn_threshold": 0.3,
+                "escalate_threshold": 0.7,
+                "confidence_floor": 0.5,
+            },
         )
         
         logs = test_db.query(RiskLog).all()
         assert len(logs) == 1
         assert logs[0].prompt == "Test prompt"
+        assert logs[0].settings_version == 1
+        assert logs[0].thresholds_applied is not None
     
     def test_get_recent_risk_logs(self, test_db):
         """Test retrieving recent risk logs."""

@@ -335,7 +335,7 @@ export default function LandingPage() {
               <motion.h1 
                 ref={headlineRef}
                 variants={slideUp} 
-                className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl"
+                className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl leading-tight"
               >
                 <span className="text-gradient">AI systems fail</span>{' '}
                 <span className="text-gradient-secondary">silently.</span>
@@ -344,7 +344,7 @@ export default function LandingPage() {
               <motion.p 
                 ref={subtextRef}
                 variants={slideUp} 
-                className="max-w-lg text-base leading-relaxed text-muted sm:text-lg lg:text-xl"
+                className="max-w-lg text-base leading-relaxed text-muted sm:text-lg lg:text-xl leading-7"
               >
                 SentinelAI makes AI risk visible, controllable, and explainable before it becomes a production incident.
               </motion.p>
@@ -484,10 +484,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
               <span className="text-gradient">How it works</span>
             </h2>
-            <p className="mt-4 text-lg text-navy-300">
+            <p className="mt-6 text-lg text-navy-300 leading-7 max-w-2xl mx-auto">
               Three simple steps to AI safety and observability
             </p>
           </motion.div>
@@ -523,7 +523,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
+                transition={{ duration: 0.16, delay: index * 0.08 }}
               >
                 <MotionCard variants={sectionFade} className="h-full border-navy-700 hover:border-primary/30 transition-all duration-300">
                   <div className="flex items-start gap-4">
@@ -531,8 +531,8 @@ export default function LandingPage() {
                       <span className="text-2xl font-bold text-white">{item.step}</span>
                     </div>
                     <div className="space-y-3 flex-1">
-                      <div className="text-xl font-semibold text-white">{item.title}</div>
-                      <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
+                      <div className="text-xl font-semibold text-white leading-tight">{item.title}</div>
+                      <div className="text-sm text-navy-300 leading-6 mt-1">{item.description}</div>
                     </div>
                   </div>
                 </MotionCard>
@@ -554,10 +554,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
               <span className="text-gradient">Core capabilities</span>
             </h2>
-            <p className="mt-4 text-lg text-navy-300">
+            <p className="mt-6 text-lg text-navy-300 leading-7 max-w-2xl mx-auto">
               Built for engineering teams that need clarity, not hype.
             </p>
           </motion.div>
@@ -608,9 +608,9 @@ export default function LandingPage() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg">
                     <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="text-lg font-semibold text-white">{item.title}</div>
-                    <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
+                  <div className="space-y-3">
+                    <div className="text-lg font-semibold text-white leading-tight">{item.title}</div>
+                    <div className="text-sm text-navy-300 leading-6 mt-1">{item.description}</div>
                   </div>
                 </div>
               </MotionCard>
@@ -725,10 +725,10 @@ export default function LandingPage() {
             variants={sectionFade}
             className="mx-auto max-w-3xl text-center"
           >
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl leading-tight">
               <span className="text-gradient">Why SentinelAI</span>
             </h2>
-            <p className="mt-4 text-lg text-navy-300 max-w-2xl mx-auto">
+            <p className="mt-6 text-lg text-navy-300 leading-7 max-w-2xl mx-auto">
               Trust comes from clear evidence: what happened, what signals were detected, and why an action was taken.
             </p>
           </motion.div>
@@ -773,9 +773,9 @@ export default function LandingPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg flex-shrink-0">
                     <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="text-lg font-semibold text-white">{item.title}</div>
-                    <div className="text-sm text-navy-300 leading-relaxed">{item.description}</div>
+                  <div className="space-y-3">
+                    <div className="text-lg font-semibold text-white leading-tight">{item.title}</div>
+                    <div className="text-sm text-navy-300 leading-6 mt-1">{item.description}</div>
                   </div>
                 </div>
               </MotionCard>
@@ -792,20 +792,17 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               <span className="text-gradient">Explore SentinelAI</span>
             </h2>
-            <p className="mt-4 text-lg text-navy-300">
+            <p className="mt-6 text-lg text-navy-300 leading-7 max-w-2xl mx-auto">
               Open console to review recent risk events, investigate decisions, and export evidence.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                {...buttonPress}
               >
                 <Button 
                   size="lg" 
                   className="bg-gradient-to-r from-primary to-electric-violet hover:from-primary/90 hover:to-electric-violet/90 text-white border-0 px-8 py-4 shadow-lg"
                   asChild
-                  {...hoverGlow}
                 >
                   <Link href="/dashboard">
                     Open console
@@ -813,11 +810,7 @@ export default function LandingPage() {
                   </Link>
                 </Button>
               </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
+              <motion.div {...buttonPress}>
                 <Button 
                   size="lg" 
                   variant="outline" 

@@ -5,51 +5,51 @@ import { motion, Variants } from 'framer-motion'
 // Premium motion variants for consistent animations
 export const fadeIn: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.6, ease: 'easeOut' } }
+  visible: { opacity: 1, transition: { duration: 0.16, ease: 'easeOut' } }
 }
 
 export const slideUp: Variants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 12 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } 
+    transition: { duration: 0.16, ease: 'easeOut' } 
   }
 }
 
 export const slideDown: Variants = {
-  hidden: { opacity: 0, y: -30 },
+  hidden: { opacity: 0, y: -12 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } 
+    transition: { duration: 0.16, ease: 'easeOut' } 
   }
 }
 
 export const slideLeft: Variants = {
-  hidden: { opacity: 0, x: 30 },
+  hidden: { opacity: 0, x: 12 },
   visible: { 
     opacity: 1, 
     x: 0, 
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } 
+    transition: { duration: 0.16, ease: 'easeOut' } 
   }
 }
 
 export const slideRight: Variants = {
-  hidden: { opacity: 0, x: -30 },
+  hidden: { opacity: 0, x: -12 },
   visible: { 
     opacity: 1, 
     x: 0, 
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } 
+    transition: { duration: 0.16, ease: 'easeOut' } 
   }
 }
 
 export const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.8 },
+  hidden: { opacity: 0, scale: 0.95 },
   visible: { 
     opacity: 1, 
     scale: 1, 
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } 
+    transition: { duration: 0.16, ease: 'easeOut' } 
   }
 }
 
@@ -57,8 +57,8 @@ export const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2
+      staggerChildren: 0.08,
+      delayChildren: 0.12
     }
   }
 }
@@ -67,15 +67,15 @@ export const staggerContainerSlow: Variants = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.3
+      staggerChildren: 0.12,
+      delayChildren: 0.16
     }
   }
 }
 
 // Premium hover animations
 export const hoverScale = {
-  whileHover: { scale: 1.02, transition: { duration: 0.2 } },
+  whileHover: { scale: 1.02, transition: { duration: 0.12, ease: 'easeOut' } },
   whileTap: { scale: 0.98 }
 }
 
@@ -83,38 +83,38 @@ export const hoverScaleLift = {
   whileHover: { 
     scale: 1.02, 
     y: -4, 
-    transition: { duration: 0.2 } 
+    transition: { duration: 0.12, ease: 'easeOut' } 
   },
   whileTap: { scale: 0.98 }
 }
 
 export const hoverScaleLiftStrong = {
   whileHover: { 
-    scale: 1.05, 
+    scale: 1.02, 
     y: -8, 
-    transition: { duration: 0.2 } 
+    transition: { duration: 0.12, ease: 'easeOut' } 
   },
-  whileTap: { scale: 0.95 }
+  whileTap: { scale: 0.98 }
 }
 
 export const hoverGlow = {
   whileHover: { 
-    boxShadow: '0 0 30px rgba(79, 139, 255, 0.4)',
-    transition: { duration: 0.2 } 
+    boxShadow: '0 0 20px rgba(79, 139, 255, 0.3)',
+    transition: { duration: 0.12, ease: 'easeOut' } 
   }
 }
 
 export const hoverGlowViolet = {
   whileHover: { 
-    boxShadow: '0 0 30px rgba(124, 92, 255, 0.4)',
-    transition: { duration: 0.2 } 
+    boxShadow: '0 0 20px rgba(124, 92, 255, 0.3)',
+    transition: { duration: 0.12, ease: 'easeOut' } 
   }
 }
 
 export const hoverGlowTeal = {
   whileHover: { 
-    boxShadow: '0 0 30px rgba(20, 184, 166, 0.4)',
-    transition: { duration: 0.2 } 
+    boxShadow: '0 0 20px rgba(20, 184, 166, 0.3)',
+    transition: { duration: 0.12, ease: 'easeOut' } 
   }
 }
 
@@ -147,9 +147,9 @@ export const riskLevelAnimations = {
 
 // Button animations
 export const buttonPress = {
-  whileHover: { scale: 1.05 },
-  whileTap: { scale: 0.95 },
-  transition: { type: 'spring', stiffness: 400, damping: 17 }
+  whileHover: { scale: 1.02 },
+  whileTap: { scale: 0.98 },
+  transition: { duration: 0.12, ease: 'easeOut' }
 }
 
 // Modal animations
@@ -157,14 +157,14 @@ export const modalOverlay = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
-  transition: { duration: 0.2 }
+  transition: { duration: 0.16, ease: 'easeOut' }
 }
 
 export const modalContent = {
-  initial: { opacity: 0, scale: 0.9, y: 20 },
+  initial: { opacity: 0, scale: 0.95, y: 8 },
   animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.9, y: 20 },
-  transition: { duration: 0.3, ease: 'easeOut' }
+  exit: { opacity: 0, scale: 0.95, y: 8 },
+  transition: { duration: 0.16, ease: 'easeOut' }
 }
 
 // Filter/Drawer animations
@@ -172,20 +172,20 @@ export const drawerSlide = {
   initial: { x: '100%' },
   animate: { x: 0 },
   exit: { x: '100%' },
-  transition: { duration: 0.3, ease: 'easeOut' }
+  transition: { duration: 0.16, ease: 'easeOut' }
 }
 
 export const filterPanel = {
   initial: { opacity: 0, height: 0 },
   animate: { opacity: 1, height: 'auto' },
   exit: { opacity: 0, height: 0 },
-  transition: { duration: 0.3, ease: 'easeOut' }
+  transition: { duration: 0.16, ease: 'easeOut' }
 }
 
 // Animated counter component
 export const AnimatedCounter = ({ 
   value, 
-  duration = 2, 
+  duration = 1.6, 
   className = '' 
 }: { 
   value: number
@@ -196,7 +196,7 @@ export const AnimatedCounter = ({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.16 }}
       className={className}
     >
       <motion.span

@@ -15,6 +15,8 @@ class AnalyzeResponse(BaseModel):
     decision: Optional[str] = None
     action_taken: Optional[str] = None
     decision_reason: Optional[str] = None
+    settings_version: Optional[int] = None
+    thresholds_applied: Optional[Any] = None
 
 
 class RiskLogResponse(BaseModel):
@@ -29,6 +31,8 @@ class RiskLogResponse(BaseModel):
     decision: Optional[str] = None
     action_taken: Optional[str] = None
     decision_reason: Optional[str] = None
+    settings_version: Optional[int] = None
+    thresholds_applied: Optional[Any] = None
     
     class Config:
         from_attributes = True

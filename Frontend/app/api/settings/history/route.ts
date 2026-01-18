@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const limit = searchParams.get('limit')
 
-  const url = new URL('/api/logs', BACKEND_BASE_URL)
+  const url = new URL('/api/settings/history', BACKEND_BASE_URL)
   if (limit) url.searchParams.set('limit', limit)
 
   try {
@@ -15,7 +15,6 @@ export async function GET(request: Request) {
     const timeout = setTimeout(() => controller.abort(), 8000)
     const response = await fetch(url.toString(), { cache: 'no-store', signal: controller.signal })
     clearTimeout(timeout)
-
     const text = await response.text()
     try {
       const json = text ? JSON.parse(text) : null
@@ -23,14 +22,7 @@ export async function GET(request: Request) {
     } catch {
       return NextResponse.json({ message: text }, { status: response.status })
     }
-  } catch (error: any) {
-    if (error?.name === 'AbortError') {
-      return NextResponse.json(
-        { message: 'Timeout error: Unable to connect to backend' },
-        { status: 504 }
-      )
-    }
-
+  } catch {
     return NextResponse.json(
       { message: 'Network error: Unable to connect to backend' },
       { status: 502 }

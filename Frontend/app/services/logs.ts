@@ -11,6 +11,11 @@ export interface RiskLog {
   prompt?: string
   response?: string
   decision?: string
+  action_taken?: string
+  decision_reason?: string
+  signals?: any
+  settings_version?: number | null
+  thresholds_applied?: any
   system?: string
   status?: string
 }

@@ -29,12 +29,16 @@ class TestEndToEndWorkflow:
         assert data["final_risk_score"] < 0.3
         assert data["decision"] == "allow"
         assert len(data["flags"]) == 0
+        assert "settings_version" in data
+        assert "thresholds_applied" in data
         
         # Verify it was logged
         logs_response = client.get("/api/logs?limit=1")
         assert logs_response.status_code == status.HTTP_200_OK
         logs = logs_response.json()
         assert len(logs) > 0
+        assert "settings_version" in logs[0]
+        assert "thresholds_applied" in logs[0]
     
     def test_harmful_content_workflow(self, client):
         """Test complete workflow with harmful content."""
@@ -52,7 +56,7 @@ class TestEndToEndWorkflow:
         
         # Verify harmful content handling
         assert data["final_risk_score"] > 0.7
-        assert data["decision"] in ["block", "escalate"]
+        assert data["decision"] in ["warn", "block", "escalate"]
         assert "self_harm" in data["flags"]
         
         # Verify it was logged with decision

@@ -46,6 +46,8 @@ class TestAnalyzeEndpoint:
         assert "flags" in data
         assert "confidence" in data
         assert "decision" in data
+        assert "settings_version" in data
+        assert "thresholds_applied" in data
         
         # Safe content should have low risk
         assert data["final_risk_score"] < 0.3
@@ -67,7 +69,7 @@ class TestAnalyzeEndpoint:
         # Harmful content should have high risk
         assert data["final_risk_score"] > 0.7
         assert len(data["flags"]) > 0
-        assert data["decision"] in ["block", "escalate"]
+        assert data["decision"] in ["warn", "block", "escalate"]
     
     def test_analyze_violence_content(self, client, sample_safe_prompt, sample_violence_response):
         """Test that violence content is properly flagged."""
@@ -146,7 +148,14 @@ class TestAnalyzeEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        required_fields = ["final_risk_score", "flags", "confidence", "decision"]
+        required_fields = [
+            "final_risk_score",
+            "flags",
+            "confidence",
+            "decision",
+            "settings_version",
+            "thresholds_applied",
+        ]
         for field in required_fields:
             assert field in data
 

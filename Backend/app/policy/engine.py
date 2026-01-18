@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from app.agent.reasoner import RiskSummary, RiskLevel
-
+from app.services.settings_service_db import settings_service
 
 class ActionType(Enum):
     """Action types for policy decisions."""
@@ -25,23 +25,9 @@ class PolicyEngine:
     """Policy engine for making safety decisions based on risk assessments."""
     
     def __init__(self):
-        # Policy rules configuration
-        self.policy_rules = {
-            # High risk always triggers escalation
-            RiskLevel.HIGH: ActionType.ESCALATE,
-            
-            # Medium risk triggers warning
-            RiskLevel.MEDIUM: ActionType.WARN,
-            
-            # Low risk is allowed
-            RiskLevel.LOW: ActionType.ALLOW,
-        }
-        
-        # Additional safety checks
-        self.safety_thresholds = {
-            "min_confidence": 0.0,  # Minimum confidence to make decision (lowered for test cases)
-            "critical_factors": ["violence", "hate_speech", "illegal_activities"]
-        }
+        # Settings are read dynamically per-request in evaluate() so changes apply immediately.
+        self.critical_factors = ["violence", "hate_speech", "illegal_activities"]
+        self.policy_rules = {}
     
     def evaluate(self, risk_summary: RiskSummary) -> PolicyDecision:
         """Evaluate risk summary and make policy decision.
@@ -52,48 +38,51 @@ class PolicyEngine:
         Returns:
             PolicyDecision with action and explanation
         """
-        # Check confidence threshold
-        if risk_summary.confidence < self.safety_thresholds["min_confidence"]:
+        # Reload settings if changed (DB-backed)
+        settings_service.reload_settings()
+
+        thresholds = settings_service.get_thresholds()
+        enforcement_mode = settings_service.get_enforcement_mode()
+
+        # Confidence handling: low confidence should never silently pass
+        if risk_summary.confidence < thresholds["confidence_floor"]:
             return PolicyDecision(
                 action=ActionType.WARN,
                 explanation="Low confidence in risk assessment - manual review recommended",
                 confidence=risk_summary.confidence
             )
-        
-        # Flag-based decision mapping as required by test cases
-        flags = risk_summary.key_factors
-        
-        # Check for multi-signal attack (both prompt_anomaly and unsafe_output)
-        if "prompt_anomaly" in flags and "unsafe_output" in flags:
-            return PolicyDecision(
-                action=ActionType.ESCALATE,
-                explanation="Multi-signal attack detected: prompt anomaly and unsafe output - escalation required",
-                confidence=risk_summary.confidence
-            )
-        
-        # Check for unsafe output only
-        elif "unsafe_output" in flags:
-            return PolicyDecision(
-                action=ActionType.BLOCK,
-                explanation="Unsafe output detected - interaction blocked",
-                confidence=risk_summary.confidence
-            )
-        
-        # Check for prompt anomaly only
-        elif "prompt_anomaly" in flags:
-            return PolicyDecision(
-                action=ActionType.WARN,
-                explanation="Prompt anomaly detected - warning issued",
-                confidence=risk_summary.confidence
-            )
-        
-        # No flags - allow
-        else:
+
+        score = float(risk_summary.combined_score)
+        warn_threshold = thresholds["warn_threshold"]
+        escalate_threshold = thresholds["escalate_threshold"]
+
+        if score < warn_threshold:
             return PolicyDecision(
                 action=ActionType.ALLOW,
-                explanation="No risk flags detected - interaction allowed",
-                confidence=risk_summary.confidence
+                explanation=f"Score {score:.2f} < warn_threshold {warn_threshold:.2f} - allowed",
+                confidence=risk_summary.confidence,
             )
+
+        if score < escalate_threshold:
+            return PolicyDecision(
+                action=ActionType.WARN,
+                explanation=f"Score {score:.2f} >= warn_threshold {warn_threshold:.2f} - warning issued",
+                confidence=risk_summary.confidence,
+            )
+
+        # High risk: enforcement_mode determines what we do when escalation threshold is exceeded
+        if enforcement_mode == "allow":
+            action = ActionType.ALLOW
+        elif enforcement_mode == "warn":
+            action = ActionType.WARN
+        else:
+            action = ActionType.ESCALATE
+
+        return PolicyDecision(
+            action=action,
+            explanation=f"Score {score:.2f} >= escalate_threshold {escalate_threshold:.2f} - enforcement_mode={enforcement_mode}",
+            confidence=risk_summary.confidence,
+        )
     
     def _check_critical_factors(self, key_factors: list) -> list:
         """Check for critical safety factors that require escalation."""
@@ -101,7 +90,7 @@ class PolicyEngine:
         
         for factor in key_factors:
             factor_lower = factor.lower()
-            for critical in self.safety_thresholds["critical_factors"]:
+            for critical in self.critical_factors:
                 if critical in factor_lower:
                     critical_found.append(critical)
         

@@ -1,0 +1,15 @@
+{
+  "warn_threshold": 0.44,
+  "escalate_threshold": 0.7,
+  "confidence_floor": 0.5,
+  "signal_weights": {
+    "prompt_anomaly": 0.3,
+    "jailbreak_attempt": 0.4,
+    "unsafe_output": 0.3
+  },
+  "enforcement_mode": "warn",
+  "version": 3,
+  "created_at": null,
+  "updated_at": "2026-01-18T10:03:58.385228",
+  "updated_by": "system"
+}
