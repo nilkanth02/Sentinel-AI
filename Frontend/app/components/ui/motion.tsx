@@ -153,33 +153,29 @@ export const buttonPress = {
 }
 
 // Modal animations
-export const modalOverlay = {
+export const modalOverlay: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.16, ease: 'easeOut' }
+  animate: { opacity: 1, transition: { duration: 0.16, ease: 'easeOut' } },
+  exit: { opacity: 0, transition: { duration: 0.16, ease: 'easeOut' } }
 }
 
-export const modalContent = {
+export const modalContent: Variants = {
   initial: { opacity: 0, scale: 0.95, y: 8 },
-  animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95, y: 8 },
-  transition: { duration: 0.16, ease: 'easeOut' }
+  animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.16, ease: 'easeOut' } },
+  exit: { opacity: 0, scale: 0.95, y: 8, transition: { duration: 0.16, ease: 'easeOut' } }
 }
 
 // Filter/Drawer animations
-export const drawerSlide = {
+export const drawerSlide: Variants = {
   initial: { x: '100%' },
-  animate: { x: 0 },
-  exit: { x: '100%' },
-  transition: { duration: 0.16, ease: 'easeOut' }
+  animate: { x: 0, transition: { duration: 0.16, ease: 'easeOut' } },
+  exit: { x: '100%', transition: { duration: 0.16, ease: 'easeOut' } }
 }
 
-export const filterPanel = {
+export const filterPanel: Variants = {
   initial: { opacity: 0, height: 0 },
-  animate: { opacity: 1, height: 'auto' },
-  exit: { opacity: 0, height: 0 },
-  transition: { duration: 0.16, ease: 'easeOut' }
+  animate: { opacity: 1, height: 'auto', transition: { duration: 0.16, ease: 'easeOut' } },
+  exit: { opacity: 0, height: 0, transition: { duration: 0.16, ease: 'easeOut' } }
 }
 
 // Animated counter component

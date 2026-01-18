@@ -163,7 +163,7 @@ export function RiskLogDetailClientModern({ log, logId }: RiskLogDetailClientMod
       <div className="min-h-screen bg-gradient-navy">
         {/* Premium animated background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:50px_50px]" />
         </div>
         <div className="relative z-10 space-y-8 p-6">
           {/* Header */}

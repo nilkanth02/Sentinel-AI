@@ -14,7 +14,7 @@ interface InteractiveElement {
 
 export function useCursorInteractions() {
   const cursorPosition = useRef<CursorPosition>({ x: 0, y: 0 })
-  const [isHovering, setIsHovering] = useState(false)
+  const [isHovering, setIsHovering] = useState(true)
   const [currentRiskLevel, setCurrentRiskLevel] = useState<'critical' | 'high' | 'medium' | 'low' | null>(null)
   const haloRef = useRef<HTMLDivElement>(null)
   const trailRef = useRef<HTMLDivElement[]>([])
@@ -23,6 +23,20 @@ export function useCursorInteractions() {
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') return
+
+    // Trigger initial mouse move to set cursor position
+    const handleInitialMouseMove = (e: MouseEvent) => {
+      cursorPosition.current = { x: e.clientX, y: e.clientY }
+      if (haloRef.current) {
+        haloRef.current.style.left = `${e.clientX}px`
+        haloRef.current.style.top = `${e.clientY}px`
+      }
+      // Remove this listener after first move
+      document.removeEventListener('mousemove', handleInitialMouseMove)
+    }
+
+    // Set up initial position and then regular tracking
+    document.addEventListener('mousemove', handleInitialMouseMove)
 
     const handleMouseMove = (e: MouseEvent) => {
       cursorPosition.current = { x: e.clientX, y: e.clientY }

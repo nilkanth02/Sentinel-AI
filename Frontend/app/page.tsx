@@ -159,7 +159,7 @@ export default function LandingPage() {
       {/* Premium animated background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <AnimatedGradient className="absolute inset-0 opacity-30" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:50px_50px]" />
       </div>
       
       {/* Design intent: the landing should feel like an engineering console entry point, not a consumer marketing page. */}
