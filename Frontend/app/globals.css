@@ -4,6 +4,23 @@
 
 @import './styles/cursor-interactions.css';
 
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset for fixed header when scrolling to sections */
+html {
+  scroll-padding-top: 80px; /* Height of sticky header */
+}
+
+/* Ensure smooth scrolling works across browsers */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 @layer base {
   :root {
     --background: 11 26% 7%;

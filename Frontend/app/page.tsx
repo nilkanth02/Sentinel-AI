@@ -10,6 +10,25 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useState, useEffect, useRef } from 'react'
 import { useCursorInteractions } from '@/hooks/useCursorInteractions'
 import { Menu, X } from 'lucide-react'
+
+// Smooth scroll utility with header offset
+const scrollToSection = (sectionId: string, setActiveSectionFn?: (section: string) => void) => {
+  const element = document.getElementById(sectionId)
+  if (element) {
+    const headerHeight = 80 // Height of sticky header
+    const elementPosition = element.offsetTop - headerHeight
+    
+    window.scrollTo({
+      top: elementPosition,
+      behavior: 'smooth'
+    })
+    
+    // Update active section
+    if (setActiveSectionFn) {
+      setActiveSectionFn(sectionId)
+    }
+  }
+}
 import { 
   fadeIn, 
   slideUp, 
@@ -56,6 +75,7 @@ export default function LandingPage() {
   const glowRef = useRef<HTMLElement>(null)
   const workflowRef = useRef<HTMLElement>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
     // GSAP Hero Animation - Controlled animations only
@@ -101,10 +121,38 @@ export default function LandingPage() {
       )
     }
 
+    // Scroll spy for active section detection
+    const handleScroll = () => {
+      const sections = [
+        { id: 'howitworks', ref: workflowRef },
+        { id: 'capabilities', element: document.getElementById('capabilities') },
+        { id: 'preview', element: document.getElementById('preview') },
+        { id: 'whysentinelai', element: document.getElementById('whysentinelai') }
+      ]
+      
+      const scrollPosition = window.scrollY + 100 // Header offset
+      
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i]
+        const element = section.ref || section.element
+        if (element) {
+          const { offsetTop, offsetHeight } = element
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section.id)
+            break
+          }
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    handleScroll() // Initial check
+
     return () => {
       ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+      window.removeEventListener('scroll', handleScroll)
     }
-  }, [])
+  }, [setActiveSection])
 
   return (
     <div className="min-h-screen bg-gradient-navy scroll-smooth">
@@ -140,14 +188,23 @@ export default function LandingPage() {
             className="hidden items-center gap-8 md:flex" 
             aria-label="Landing page"
           >
-            {['How it works', 'Capabilities', 'Product preview', 'Why SentinelAI'].map((item, index) => (
-              <Link
-                key={item}
-                href={`#${item.toLowerCase().replace(' ', '')}`}
-                className="text-sm font-medium text-muted hover:text-white transition-colors"
+            {[
+              { name: 'How it works', id: 'howitworks' },
+              { name: 'Capabilities', id: 'capabilities' },
+              { name: 'Product preview', id: 'preview' },
+              { name: 'Why SentinelAI', id: 'whysentinelai' }
+            ].map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id, setActiveSection)}
+                className={`text-sm font-medium transition-colors ${
+                  activeSection === item.id 
+                    ? 'text-white' 
+                    : 'text-muted hover:text-white'
+                }`}
               >
-                {item}
-              </Link>
+                {item.name}
+              </button>
             ))}
           </motion.nav>
 
@@ -206,15 +263,26 @@ export default function LandingPage() {
           className="md:hidden overflow-hidden border-t border-white/6"
         >
           <div className="container mx-auto px-4 py-4 space-y-4">
-            {['How it works', 'Capabilities', 'Product preview', 'Why SentinelAI'].map((item, index) => (
-              <Link
-                key={item}
-                href={`#${item.toLowerCase().replace(' ', '')}`}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-medium text-muted hover:text-white transition-colors py-2"
+            {[
+              { name: 'How it works', id: 'howitworks' },
+              { name: 'Capabilities', id: 'capabilities' },
+              { name: 'Product preview', id: 'preview' },
+              { name: 'Why SentinelAI', id: 'whysentinelai' }
+            ].map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  scrollToSection(item.id, setActiveSection)
+                  setMobileMenuOpen(false)
+                }}
+                className={`block text-sm font-medium transition-colors py-2 text-left w-full ${
+                  activeSection === item.id 
+                    ? 'text-white' 
+                    : 'text-muted hover:text-white'
+                }`}
               >
-                {item}
-              </Link>
+                {item.name}
+              </button>
             ))}
             <div className="pt-4 space-y-3 border-t border-white/10">
               <Button 
@@ -312,12 +380,10 @@ export default function LandingPage() {
                     variant="outline" 
                     size="lg"
                     className="border-white/10 bg-black/20 text-muted hover:bg-white/10 hover:text-white px-6 py-3 text-base"
-                    asChild
+                    onClick={() => scrollToSection('howitworks', setActiveSection)}
                   >
-                    <Link href="#howitworks">
-                      See How It Works
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                    See How It Works
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </motion.div>
               </motion.div>
@@ -779,14 +845,33 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              {['How it works', 'Capabilities', 'Why SentinelAI', 'Open console'].map((item) => (
-                <Link
-                  key={item}
-                  href={item === 'Open console' ? '/dashboard' : `#${item.toLowerCase().replace(' ', '')}`}
-                  className="text-navy-400 hover:text-white transition-colors"
-                >
-                  {item}
-                </Link>
+              {[
+                { name: 'How it works', id: 'howitworks' },
+                { name: 'Capabilities', id: 'capabilities' },
+                { name: 'Why SentinelAI', id: 'whysentinelai' },
+                { name: 'Open console', href: '/dashboard' }
+              ].map((item) => (
+                item.href ? (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="text-navy-400 hover:text-white transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                ) : (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToSection(item.id!, setActiveSection)}
+                    className={`transition-colors ${
+                      activeSection === item.id 
+                        ? 'text-white' 
+                        : 'text-navy-400 hover:text-white'
+                    }`}
+                  >
+                    {item.name}
+                  </button>
+                )
               ))}
             </div>
           </div>
