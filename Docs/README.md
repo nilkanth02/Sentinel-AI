@@ -1,4 +1,4 @@
-# SentinelAI (Under Developement)
+# Sentinel-AI (Under Developement)
  
 SentinelAI is a lightweight AI risk monitoring system designed to detect
 prompt anomalies and risky model outputs before they reach end users.
